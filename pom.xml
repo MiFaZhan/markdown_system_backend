@@ -9,7 +9,7 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>org.example</groupId>
-	<artifactId>markdown_system</artifactId>
+	<artifactId>markdown_system_server</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>markdown_system</name>
 	<description>markdown_system</description>
