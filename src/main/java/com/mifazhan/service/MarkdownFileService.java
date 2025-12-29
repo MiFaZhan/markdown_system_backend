@@ -1,7 +1,9 @@
 package com.mifazhan.service;
 
-import com.mifazhan.domain.MarkdownFile;
+import com.mifazhan.domain.dto.MarkdownFileDTO;
+import com.mifazhan.domain.entity.MarkdownFile;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.mifazhan.domain.vo.MarkdownFileVO;
 
 /**
 * @author MIFAZHAN
@@ -10,4 +12,11 @@ import com.baomidou.mybatisplus.extension.service.IService;
 */
 public interface MarkdownFileService extends IService<MarkdownFile> {
 
+    MarkdownFileVO insertMarkdownFile(MarkdownFileDTO markdownFileDTO);
+    
+    MarkdownFileVO getMarkdownFileById(Long id);
+    
+    MarkdownFileVO updateMarkdownFile(Long id, MarkdownFileDTO markdownFileDTO);
+    
+    boolean deleteMarkdownFile(Long id);
 }

@@ -4,10 +4,10 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.mifazhan.mapper.MarkdownFileMapper">
 
-    <resultMap id="BaseResultMap" type="com.mifazhan.domain.MarkdownFile">
-            <id property="id" column="id" />
+    <resultMap id="BaseResultMap" type="com.mifazhan.domain.entity.MarkdownFile">
+            <id property="markdownId" column="markdownId" />
             <result property="userId" column="user_id" />
-            <result property="fileName" column="file_name" />
+            <result property="markdownName" column="markdownName" />
             <result property="markdownContent" column="markdown_content" />
             <result property="creationTime" column="creation_time" />
             <result property="updateTime" column="update_time" />
@@ -17,7 +17,7 @@
     </resultMap>
 
     <sql id="Base_Column_List">
-        id,user_id,file_name,markdown_content,creation_time,update_time,
+        markdownId,user_id,markdownName,markdown_content,creation_time,update_time,
         version,remark,deleted
     </sql>
 </mapper>

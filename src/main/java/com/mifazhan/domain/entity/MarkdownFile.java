@@ -1,10 +1,11 @@
-package com.mifazhan.domain;
+package com.mifazhan.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.util.Date;
+
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 /**
@@ -18,17 +19,19 @@ public class MarkdownFile {
      * 主键id
      */
     @TableId(type = IdType.AUTO)
-    private Long id;
+    private Long markdownId;
 
     /**
-     * 所属用户ID
+     * 用户ID
      */
+    @NotNull(message = "用户ID不能为空")
     private Long userId;
 
     /**
      * Markdown 文件名
      */
-    private String fileName;
+    @NotNull(message = "文件名不能为空")
+    private String markdownName;
 
     /**
      * Markdown 文件内容
@@ -56,7 +59,7 @@ public class MarkdownFile {
     private String remark;
 
     /**
-     * 是否删除 0否 1是
+     * 逻辑删除 0否 1是
      */
     private Integer deleted;
 }
