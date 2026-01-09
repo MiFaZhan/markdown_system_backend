@@ -1,14 +1,16 @@
 package com.mifazhan.service.impl;
 
+import com.baomidou.mybatisplus.core.metadata.OrderItem;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.mifazhan.domain.convert.ProjectConvert;
 import com.mifazhan.domain.dto.ProjectDTO;
+import com.mifazhan.domain.dto.ProjectUpdateDTO;
 import com.mifazhan.domain.entity.Project;
-import com.mifazhan.domain.exception.BusinessException;
 import com.mifazhan.domain.vo.ProjectVO;
-import com.mifazhan.domain.vo.Result;
 import com.mifazhan.service.ProjectService;
 import com.mifazhan.mapper.ProjectMapper;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,32 +30,57 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project>
     private final ProjectConvert projectConvert;
 
     @Override
+    public Page<ProjectVO> pageProjects(Integer pageNum, Integer pageSize, String sortField, String sortOrder) {
+        // 创建分页对象，默认值处理
+        Page<Project> page = new Page<>(pageNum != null ? pageNum : 1, pageSize != null ? pageSize : 10);
+
+        // 添加排序条件
+        if ("asc".equalsIgnoreCase(sortOrder)) {
+            page.addOrder(OrderItem.asc(sortField));
+        } else {
+            page.addOrder(OrderItem.desc(sortField));
+        }
+
+        // 分页查询
+        Page<Project> projectPage = this.page(page);
+
+        // 转换为VO分页对象
+        Page<ProjectVO> voPage = new Page<>(projectPage.getCurrent(), projectPage.getSize(), projectPage.getTotal());
+        voPage.setRecords(projectConvert.toVOList(projectPage.getRecords()));
+
+        return voPage;
+    }
+
+    @Override
+    public ProjectVO getProject(Long projectId) {
+        Project project = this.getById(projectId);
+        return projectConvert.toVO(project);
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
-    public Result<ProjectVO> insertProject(ProjectDTO projectDTO) {
+    public ProjectVO insertProject(ProjectDTO projectDTO) {
         log.info("开始插入Project: {}", projectDTO);
-        
-        if (projectDTO == null){
-            log.error("新增projectDTO为空");
-            throw new BusinessException(400, "新增projectDTO不能为空");
-        }
-        
-        // 验证projectName不为空
-        if (projectDTO.getProjectName() == null || projectDTO.getProjectName().trim().isEmpty()) {
-            log.error("项目名称不能为空");
-            throw new BusinessException(400, "项目名称不能为空");
-        }
 
         Project project = projectConvert.toEntity(projectDTO);
+        this.save(project);
+        
+        log.info("成功保存Project，ID: {}", project.getProjectId());
+        return projectConvert.toVO(project);
+    }
 
-        if(this.save(project)){
-            log.info("成功保存Project，ID: {}", project.getProjectId());
-            ProjectVO result = projectConvert.toVO(this.getById(project.getProjectId()));
-            log.info("返回的VO对象: {}", result);
-            return Result.success(result);
-        }else {
-            log.error("新增Project失败，DTO: {}", projectDTO);
-            throw new BusinessException(500, "新增Project失败");
-        }
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ProjectVO updateProject(@Valid ProjectUpdateDTO projectUpdateDTO) {
+        log.info("开始更新Project: {}", projectUpdateDTO);
+        Project project = projectConvert.toUpdateEntity(projectUpdateDTO);
+        this.updateById(project);
+        return projectConvert.toVO(project);
+    }
+
+    @Override
+    public void deleteProject(Long projectId) {
+        this.removeById(projectId);
     }
 }
 

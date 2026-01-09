@@ -2,10 +2,15 @@ package com.mifazhan.domain.vo;
 
 import lombok.Data;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @Data
 public class ProjectVO {
+    /**
+     * 项目ID
+     */
+    private Integer projectId;
+
     /**
      * 项目姓名
      */
@@ -29,10 +34,10 @@ public class ProjectVO {
     /**
      * 创建时间
      */
-    private Date creationTime;
+    private LocalDateTime creationTime;
 
     /**
      * 更新时间
      */
-    private Date updateTime;
+    private LocalDateTime updateTime;
 }

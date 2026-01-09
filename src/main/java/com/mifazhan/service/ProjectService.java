@@ -1,10 +1,12 @@
 package com.mifazhan.service;
 
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mifazhan.domain.dto.ProjectDTO;
+import com.mifazhan.domain.dto.ProjectUpdateDTO;
 import com.mifazhan.domain.entity.Project;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.mifazhan.domain.vo.ProjectVO;
-import com.mifazhan.domain.vo.Result;
+import jakarta.validation.Valid;
 
 /**
 * @author MIFAZHAN
@@ -13,5 +15,13 @@ import com.mifazhan.domain.vo.Result;
 */
 public interface ProjectService extends IService<Project> {
 
-    Result<ProjectVO> insertProject(ProjectDTO projectDTO);
+    ProjectVO insertProject(ProjectDTO projectDTO);
+
+    Page<ProjectVO> pageProjects(Integer pageNum, Integer pageSize, String sortField, String sortOrder);
+
+    ProjectVO getProject(Long projectId);
+
+    ProjectVO updateProject(@Valid ProjectUpdateDTO projectUpdateDTO);
+
+    void deleteProject(Long projectId);
 }
