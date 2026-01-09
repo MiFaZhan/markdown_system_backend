@@ -2,7 +2,6 @@ package com.mifazhan.controller;
 
 import com.mifazhan.domain.convert.MarkdownFileConvert;
 import com.mifazhan.domain.dto.MarkdownFileDTO;
-import com.mifazhan.domain.entity.MarkdownFile;
 import com.mifazhan.domain.vo.MarkdownFileVO;
 import com.mifazhan.domain.vo.Result;
 import com.mifazhan.service.MarkdownFileService;
@@ -30,7 +29,7 @@ public class MarkdownFileController {
     private MarkdownFileService markdownFileService;
 
     @PostMapping
-    public Result<MarkdownFileVO> createMarkdownFile(@Valid @RequestBody MarkdownFileDTO markdownFileDTO) {
+    public Result<MarkdownFileVO> insertMarkdownFile(@Valid @RequestBody MarkdownFileDTO markdownFileDTO) {
         log.info("接收到创建Markdown文件请求: {}", markdownFileDTO);
         try {
             MarkdownFileVO result = markdownFileService.insertMarkdownFile(markdownFileDTO);

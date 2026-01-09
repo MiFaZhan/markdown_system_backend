@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mifazhan.mapper.ProjectMapper">
+
+    <resultMap id="BaseResultMap" type="com.mifazhan.domain.entity.Project">
+            <id property="projectId" column="project_id" />
+            <result property="projectName" column="project_name" />
+            <result property="description" column="description" />
+            <result property="icon" column="icon" />
+            <result property="userId" column="user_id" />
+            <result property="creationTime" column="creation_time" />
+            <result property="updateTime" column="update_time" />
+            <result property="deleted" column="deleted" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        project_id,project_name,description,icon,user_id,creation_time,
+        update_time,deleted
+    </sql>
+</mapper>
