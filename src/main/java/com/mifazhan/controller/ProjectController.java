@@ -57,11 +57,11 @@ public class ProjectController {
     }
 
     /**
-     * 更新项目
+     * 修改项目
      */
     @PutMapping
     public Result<ProjectVO> updateProject(@Valid @RequestBody ProjectUpdateDTO projectUpdateDTO) {
-        log.info("更新项目: {}", projectUpdateDTO);
+        log.info("修改项目: {}", projectUpdateDTO);
         return Result.success(projectService.updateProject(projectUpdateDTO));
     }
 

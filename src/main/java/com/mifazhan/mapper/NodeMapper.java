@@ -1,6 +1,6 @@
 package com.mifazhan.mapper;
 
-import com.mifazhan.domain.entity.MarkdownFile;
+import com.mifazhan.domain.entity.Node;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 
 /**
@@ -9,7 +9,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 * @createDate 2025-12-16 15:01:03
 * @Entity com.mifazhan.domain.entity.MarkdownFile
 */
-public interface MarkdownFileMapper extends BaseMapper<MarkdownFile> {
+public interface NodeMapper extends BaseMapper<Node> {
 
 }
 

@@ -72,7 +72,7 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project>
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ProjectVO updateProject(@Valid ProjectUpdateDTO projectUpdateDTO) {
-        log.info("开始更新Project: {}", projectUpdateDTO);
+        log.info("开始修改Project: {}", projectUpdateDTO);
         Project project = projectConvert.toUpdateEntity(projectUpdateDTO);
         this.updateById(project);
         return projectConvert.toVO(project);
