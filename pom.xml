@@ -9,10 +9,10 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>org.example</groupId>
-	<artifactId>markdown_system_server</artifactId>
+	<artifactId>markdown_system_backend</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>markdown_system</name>
-	<description>markdown_system</description>
+	<name>markdown_system_backend</name>
+	<description>markdown_system_backend</description>
 	<url/>
 	<licenses>
 		<license/>
