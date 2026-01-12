@@ -5,14 +5,14 @@
 <mapper namespace="com.mifazhan.mapper.ProjectMapper">
 
     <resultMap id="BaseResultMap" type="com.mifazhan.domain.entity.Project">
-            <id property="projectId" column="project_id" />
-            <result property="projectName" column="project_name" />
-            <result property="description" column="description" />
-            <result property="icon" column="icon" />
-            <result property="userId" column="user_id" />
-            <result property="creationTime" column="creation_time" />
-            <result property="updateTime" column="update_time" />
-            <result property="deleted" column="deleted" />
+            <id property="projectId" column="project_id" jdbcType="BIGINT"/>
+            <result property="projectName" column="project_name" jdbcType="VARCHAR"/>
+            <result property="description" column="description" jdbcType="VARCHAR"/>
+            <result property="icon" column="icon" jdbcType="VARCHAR"/>
+            <result property="userId" column="user_id" jdbcType="BIGINT"/>
+            <result property="creationTime" column="creation_time" jdbcType="TIMESTAMP"/>
+            <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
+            <result property="deleted" column="deleted" jdbcType="TINYINT"/>
     </resultMap>
 
     <sql id="Base_Column_List">
