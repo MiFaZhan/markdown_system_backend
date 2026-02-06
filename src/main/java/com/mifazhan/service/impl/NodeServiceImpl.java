@@ -144,7 +144,7 @@ public class NodeServiceImpl extends ServiceImpl<NodeMapper, Node>
         for (Node node : allNodes) {
             NodeTreeVO.NodeItemVO currentNode = nodeMap.get(node.getNodeId());
             
-            if (node.getParentId() == null) {
+            if (node.getParentId() == 0) {
                 // 根节点
                 rootNodes.add(currentNode);
             } else {

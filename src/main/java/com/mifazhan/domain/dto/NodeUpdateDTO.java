@@ -13,7 +13,7 @@ public class NodeUpdateDTO {
     private Long nodeId;
 
     /**
-     * 父节点ID null表示项目根
+     * 父节点ID 0表示项目根
      */
     @ApiModelProperty(value = "父节点ID")
     private Long parentId;

@@ -60,7 +60,7 @@ public class NodeTreeVO {
         private Long nodeId;
 
         /**
-         * 父节点ID null表示项目根
+         * 父节点ID 0表示项目根
          */
         private Long parentId;
 
