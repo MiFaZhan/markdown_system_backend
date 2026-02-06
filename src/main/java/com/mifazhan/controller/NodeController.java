@@ -24,11 +24,6 @@ public class NodeController {
     @Autowired
     private NodeService nodeService;
 
-//    @GetMapping
-//    public Result<List<NodeVO>> listNode() {
-//        return Result.success(nodeService.listNode());
-//    }
-
     /**
      * 获取项目的节点树形结构
      * @param projectId 项目ID
@@ -40,23 +35,18 @@ public class NodeController {
     }
 
     @PostMapping
-    public Result<NodeTreeVO> insertNode(@Valid @RequestBody NodeDTO nodeDTO) {
-        nodeService.insertNode(nodeDTO);
-        // 插入后返回完整的项目树形结构，确保前端数据一致性
-        return Result.success(nodeService.getProjectTree(nodeDTO.getProjectId()));
+    public Result<NodeVO> insertNode(@Valid @RequestBody NodeDTO nodeDTO) {
+        return Result.success(nodeService.insertNode(nodeDTO));
     }
 
     @PutMapping
-    public Result<NodeTreeVO> updateNode(@Valid @RequestBody NodeUpdateDTO nodeUpdateDTO) {
-        NodeVO updatedNode = nodeService.updateNode(nodeUpdateDTO);
-        // 更新后返回完整的项目树形结构，确保前端数据一致性
-        return Result.success(nodeService.getProjectTree(updatedNode.getProjectId()));
+    public Result<NodeVO> updateNode(@Valid @RequestBody NodeUpdateDTO nodeUpdateDTO) {
+        return Result.success(nodeService.updateNode(nodeUpdateDTO));
     }
 
-    @DeleteMapping
-    public Result<NodeTreeVO> deleteNode(@RequestBody Long nodeId) {
-        Long projectId = nodeService.deleteNode(nodeId);
-        // 删除后返回完整的项目树形结构，确保前端数据一致性
-        return Result.success(nodeService.getProjectTree(projectId));
+    @DeleteMapping("/{nodeId}")
+    public Result<Void> deleteNode(@PathVariable Long nodeId) {
+        nodeService.deleteNode(nodeId);
+        return Result.success();
     }
 }

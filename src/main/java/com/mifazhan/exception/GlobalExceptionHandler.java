@@ -1,4 +1,4 @@
-package com.mifazhan.domain.exception;
+package com.mifazhan.exception;
 
 import com.mifazhan.domain.vo.Result;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,7 +17,12 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+import org.springframework.validation.BindingResult;
+
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestControllerAdvice
@@ -44,13 +49,9 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Result<?> handleMethodArgumentNotValidException(MethodArgumentNotValidException e, HttpServletRequest request) {
-        List<FieldError> fieldErrors = e.getBindingResult().getFieldErrors();
-        StringBuilder sb = new StringBuilder();
-        for (FieldError error : fieldErrors) {
-            sb.append(error.getField()).append(": ").append(error.getDefaultMessage()).append("; ");
-        }
-        log.error("参数校验异常：{} - {}", request.getRequestURI(), sb.toString());
-        return Result.error(400, "参数校验失败: " + sb.toString());
+        String message = formatBindingResult(e.getBindingResult());
+        log.error("参数校验异常：{} - {}", request.getRequestURI(), message);
+        return Result.error(400, "参数校验失败: " + message);
     }
 
     /**
@@ -62,13 +63,38 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(BindException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Result<?> handleBindException(BindException e, HttpServletRequest request) {
-        List<FieldError> fieldErrors = e.getBindingResult().getFieldErrors();
+        String message = formatBindingResult(e.getBindingResult());
+        log.error("参数绑定异常：{} - {}", request.getRequestURI(), message);
+        return Result.error(400, "参数绑定失败: " + message);
+    }
+
+    /**
+     * 处理参数校验异常(@RequestParam @PathVariable @Validated)
+     * @param e 参数校验异常
+     * @param request HTTP请求对象
+     * @return Result对象
+     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Result<?> handleConstraintViolationException(ConstraintViolationException e, HttpServletRequest request) {
+        String message = e.getConstraintViolations().stream()
+                .map(ConstraintViolation::getMessage)
+                .collect(Collectors.joining("; "));
+        log.error("参数校验异常：{} - {}", request.getRequestURI(), message);
+        return Result.error(400, "参数校验失败: " + message);
+    }
+
+    /**
+     * 格式化绑定结果错误信息
+     * @param bindingResult 绑定结果
+     * @return 错误信息字符串
+     */
+    private String formatBindingResult(BindingResult bindingResult) {
         StringBuilder sb = new StringBuilder();
-        for (FieldError error : fieldErrors) {
+        for (FieldError error : bindingResult.getFieldErrors()) {
             sb.append(error.getField()).append(": ").append(error.getDefaultMessage()).append("; ");
         }
-        log.error("参数绑定异常：{} - {}", request.getRequestURI(), sb.toString());
-        return Result.error(400, "参数绑定失败: " + sb.toString());
+        return sb.toString();
     }
 
     /**

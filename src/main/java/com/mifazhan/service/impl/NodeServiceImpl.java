@@ -7,7 +7,7 @@ import com.mifazhan.domain.dto.NodeDTO;
 import com.mifazhan.domain.dto.NodeUpdateDTO;
 import com.mifazhan.domain.entity.Node;
 import com.mifazhan.domain.entity.MarkdownContent;
-import com.mifazhan.domain.exception.BusinessException;
+import com.mifazhan.exception.BusinessException;
 import com.mifazhan.domain.vo.NodeVO;
 import com.mifazhan.domain.vo.NodeTreeVO;
 import com.mifazhan.domain.vo.ProjectVO;
@@ -20,7 +20,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;

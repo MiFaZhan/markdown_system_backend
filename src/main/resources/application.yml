@@ -21,3 +21,19 @@ mybatis-plus:
       logic-delete-field: deleted # 全局逻辑删除字段名(deleted为实体类属性名称)
       logic-delete-value: 1 # 逻辑已删除值。默认值为 1
       logic-not-delete-value: 0 # 逻辑未删除值。默认值为 0
+
+# CORS配置
+cors:
+  allowed-origins:
+    - "http://localhost:3000"
+    - "http://127.0.0.1:3000"
+  allowed-methods:
+    - "GET"
+    - "POST"
+    - "PUT"
+    - "DELETE"
+    - "OPTIONS"
+  allowed-headers: "*"
+  allow-credentials: true
+  max-age: 3600
+  path-mapping: "/api/**"

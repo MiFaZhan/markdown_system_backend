@@ -1,8 +1,7 @@
-package com.mifazhan.domain.exception;
+package com.mifazhan.exception;
 
 public class BusinessException extends RuntimeException{
     private Integer code;
-    private String message;
 
     public BusinessException(String message) {
         super(message);
