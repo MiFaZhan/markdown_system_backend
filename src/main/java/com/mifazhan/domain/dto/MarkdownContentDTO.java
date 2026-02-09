@@ -1,9 +1,9 @@
 package com.mifazhan.domain.dto;
 
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.Version;
 import jakarta.validation.constraints.NotNull;
+import lombok.Data;
 
+@Data
 public class MarkdownContentDTO {
     /**
      * 节点ID
@@ -19,7 +19,5 @@ public class MarkdownContentDTO {
     /**
      * 版本号
      */
-    @Version
-    @NotNull(message = "版本号不能为空")
     private Integer version;
 }

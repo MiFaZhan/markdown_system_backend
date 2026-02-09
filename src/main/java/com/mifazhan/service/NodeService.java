@@ -18,12 +18,6 @@ import java.util.List;
 public interface NodeService extends IService<Node> {
 
     NodeVO insertNode(NodeDTO nodeDTO);
-    
-//    NodeVO getMarkdownFileById(Long id);
-//
-//    NodeVO updateMarkdownFile(Long id, NodeDTO nodeDTO);
-//
-//    boolean deleteMarkdownFile(Long id);
 
     List<NodeVO> listNode();
 
