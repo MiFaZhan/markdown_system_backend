@@ -1,5 +1,6 @@
 package com.mifazhan.service;
 
+import java.util.List;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.mifazhan.domain.dto.ProjectDTO;
 import com.mifazhan.domain.dto.ProjectUpdateDTO;
@@ -18,6 +19,8 @@ public interface ProjectService extends IService<Project> {
     ProjectVO insertProject(ProjectDTO projectDTO);
 
     Page<ProjectVO> pageProjects(Integer pageNum, Integer pageSize, String sortField, String sortOrder);
+
+    List<ProjectVO> listProject(String keyword, String sortField, String sortOrder);
 
     ProjectVO getProject(Long projectId);
 

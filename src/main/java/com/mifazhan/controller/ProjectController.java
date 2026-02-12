@@ -1,7 +1,8 @@
 package com.mifazhan.controller;
 
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import java.util.List;
+
 import com.mifazhan.domain.dto.ProjectDTO;
 import com.mifazhan.domain.dto.ProjectUpdateDTO;
 import com.mifazhan.domain.vo.ProjectVO;
@@ -27,15 +28,27 @@ public class ProjectController {
     /**
      * 分页查询项目列表
      */
+    // @GetMapping
+    // public Result<Page<ProjectVO>> listProjects(
+    //         @RequestParam(defaultValue = "1") Integer pageNum,
+    //         @RequestParam(defaultValue = "10") Integer pageSize,
+    //         @RequestParam(defaultValue = "creation_time") String sortField,
+    //         @RequestParam(defaultValue = "asc") String sortOrder) {
+    //     log.info("分页查询项目列表, pageNum: {}, pageSize: {}, sortField: {}, sortOrder: {}", 
+    //             pageNum, pageSize, sortField, sortOrder);
+    //     return Result.success(projectService.pageProjects(pageNum, pageSize, sortField, sortOrder));
+    // }
+
+    /**
+     * 查询所有项目列表
+     */
     @GetMapping
-    public Result<Page<ProjectVO>> listProjects(
-            @RequestParam(defaultValue = "1") Integer pageNum,
-            @RequestParam(defaultValue = "10") Integer pageSize,
+    public Result<List<ProjectVO>> z(
+            @RequestParam(defaultValue = "") String keyword,
             @RequestParam(defaultValue = "creation_time") String sortField,
             @RequestParam(defaultValue = "asc") String sortOrder) {
-        log.info("分页查询项目列表, pageNum: {}, pageSize: {}, sortField: {}, sortOrder: {}", 
-                pageNum, pageSize, sortField, sortOrder);
-        return Result.success(projectService.pageProjects(pageNum, pageSize, sortField, sortOrder));
+        log.info("查询所有项目列表, keyword: {}, sortField: {}, sortOrder: {}", keyword, sortField, sortOrder);
+        return Result.success(projectService.listProject(keyword, sortField, sortOrder));
     }
 
     /**

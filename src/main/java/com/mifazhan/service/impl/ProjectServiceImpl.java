@@ -1,5 +1,6 @@
 package com.mifazhan.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.OrderItem;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -15,6 +16,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 /**
 * @author MIFAZHAN
@@ -49,6 +52,23 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project>
         voPage.setRecords(projectConvert.toVOList(projectPage.getRecords()));
 
         return voPage;
+    }
+
+    @Override
+    public List<ProjectVO> listProject(String keyword, String sortField, String sortOrder) {
+        LambdaQueryWrapper<Project> queryWrapper = new LambdaQueryWrapper<>();
+        
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            queryWrapper.like(Project::getProjectName, keyword.trim());
+        }
+        
+        if ("asc".equalsIgnoreCase(sortOrder)) {
+            queryWrapper.orderByAsc(Project::getCreationTime);
+        } else {
+            queryWrapper.orderByDesc(Project::getCreationTime);
+        }
+        List<Project> projectList = this.list(queryWrapper);
+        return projectConvert.toVOList(projectList);
     }
 
     @Override
