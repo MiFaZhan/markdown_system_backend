@@ -2,6 +2,7 @@ package com.mifazhan.service;
 
 import com.mifazhan.domain.dto.NodeDTO;
 import com.mifazhan.domain.dto.NodeUpdateDTO;
+import com.mifazhan.domain.dto.NodeUploadDTO;
 import com.mifazhan.domain.entity.Node;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.mifazhan.domain.vo.NodeVO;
@@ -31,4 +32,6 @@ public interface NodeService extends IService<Node> {
     Long deleteNode(Long nodeId);
 
     NodeVO updateNode(@Valid NodeUpdateDTO nodeUpdateDTO);
+
+    NodeVO uploadMarkdownFile(NodeUploadDTO nodeUploadDTO);
 }

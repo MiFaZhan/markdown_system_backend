@@ -18,10 +18,11 @@ public class ImageController {
     @PostMapping("/upload")
     public Result<String> uploadImage(
             @RequestParam("file[]") MultipartFile file,
-            @RequestParam("projectId") Long projectId) {
-        log.info("收到图片上传请求, projectId: {}, filename: {}", projectId, file.getOriginalFilename());
+            @RequestParam("projectId") Long projectId,
+            @RequestParam("nodeId") Long nodeId) {
+        log.info("收到图片上传请求, projectId: {}, nodeId: {}, filename: {}", projectId, nodeId, file.getOriginalFilename());
         
-        String imageUrl = imageService.uploadImage(file, projectId);
+        String imageUrl = imageService.uploadImage(file, projectId, nodeId);
         log.info("图片上传成功, URL: {}", imageUrl);
         
         return Result.success(imageUrl);

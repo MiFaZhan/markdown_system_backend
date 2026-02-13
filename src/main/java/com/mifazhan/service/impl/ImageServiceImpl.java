@@ -1,8 +1,13 @@
 package com.mifazhan.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.mifazhan.config.FileUploadConfig;
+import com.mifazhan.domain.entity.Node;
+import com.mifazhan.domain.entity.Project;
 import com.mifazhan.exception.BusinessException;
 import com.mifazhan.service.ImageService;
+import com.mifazhan.service.NodeService;
+import com.mifazhan.service.ProjectService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -20,6 +25,8 @@ import java.util.UUID;
 public class ImageServiceImpl implements ImageService {
 
     private final FileUploadConfig fileUploadConfig;
+    private final ProjectService projectService;
+    private final NodeService nodeService;
 
     private static final List<String> ALLOWED_EXTENSIONS = Arrays.asList(
             "jpg", "jpeg", "png", "gif", "bmp", "webp"
@@ -30,7 +37,7 @@ public class ImageServiceImpl implements ImageService {
     );
 
     @Override
-    public String uploadImage(MultipartFile file, Long projectId) {
+    public String uploadImage(MultipartFile file, Long projectId, Long nodeId) {
         if (file == null || file.isEmpty()) {
             throw new BusinessException("上传文件不能为空");
         }
@@ -54,18 +61,34 @@ public class ImageServiceImpl implements ImageService {
             throw new BusinessException("文件大小超过限制，最大允许: " + (fileUploadConfig.getMaxSize() / 1024 / 1024) + "MB");
         }
 
+        Project project = projectService.getById(projectId);
+        if (project == null) {
+            throw new BusinessException("项目不存在");
+        }
+
+        Node node = nodeService.getById(nodeId);
+        if (node == null) {
+            throw new BusinessException("节点不存在");
+        }
+
+        String projectName = sanitizeFileName(project.getProjectName());
+        String markdownFileName = sanitizeFileName(removeMdExtension(node.getNodeName()));
+
         String uploadPath = fileUploadConfig.getPath();
-        File projectDir = new File(uploadPath, String.valueOf(projectId));
-        if (!projectDir.exists()) {
-            boolean created = projectDir.mkdirs();
+        File imagesBaseDir = new File(uploadPath, "images");
+        File projectDir = new File(imagesBaseDir, projectName);
+        File markdownDir = new File(projectDir, markdownFileName);
+
+        if (!markdownDir.exists()) {
+            boolean created = markdownDir.mkdirs();
             if (!created) {
                 throw new BusinessException("创建上传目录失败");
             }
-            log.info("创建项目图片目录: {}", projectDir.getAbsolutePath());
+            log.info("创建图片目录: {}", markdownDir.getAbsolutePath());
         }
 
         String newFilename = UUID.randomUUID().toString() + "." + extension;
-        File destFile = new File(projectDir, newFilename);
+        File destFile = new File(markdownDir, newFilename);
 
         try {
             file.transferTo(destFile);
@@ -75,8 +98,22 @@ public class ImageServiceImpl implements ImageService {
             throw new BusinessException("图片保存失败: " + e.getMessage());
         }
 
-        String imageUrl = fileUploadConfig.getUrlPrefix() + "/" + projectId + "/" + newFilename;
+        String imageUrl = fileUploadConfig.getUrlPrefix() + "/images/" + projectName + "/" + markdownFileName + "/" + newFilename;
         return imageUrl;
+    }
+
+    private String removeMdExtension(String filename) {
+        if (filename != null && filename.toLowerCase().endsWith(".md")) {
+            return filename.substring(0, filename.length() - 3);
+        }
+        return filename;
+    }
+
+    private String sanitizeFileName(String filename) {
+        if (filename == null || filename.isEmpty()) {
+            return "unnamed";
+        }
+        return filename.replaceAll("[\\\\/:*?\"<>|]", "_");
     }
 
     private String getFileExtension(String filename) {

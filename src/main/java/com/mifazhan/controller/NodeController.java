@@ -2,6 +2,7 @@ package com.mifazhan.controller;
 
 import com.mifazhan.domain.dto.NodeDTO;
 import com.mifazhan.domain.dto.NodeUpdateDTO;
+import com.mifazhan.domain.dto.NodeUploadDTO;
 import com.mifazhan.domain.vo.NodeVO;
 import com.mifazhan.domain.vo.NodeTreeVO;
 import com.mifazhan.domain.vo.Result;
@@ -11,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -37,6 +39,18 @@ public class NodeController {
     @PostMapping
     public Result<NodeVO> insertNode(@Valid @RequestBody NodeDTO nodeDTO) {
         return Result.success(nodeService.insertNode(nodeDTO));
+    }
+
+    @PostMapping("/upload")
+    public Result<NodeVO> uploadMarkdownFile(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("projectId") Long projectId,
+            @RequestParam(value = "parentId", required = false) Long parentId) {
+        NodeUploadDTO nodeUploadDTO = new NodeUploadDTO();
+        nodeUploadDTO.setFile(file);
+        nodeUploadDTO.setProjectId(projectId);
+        nodeUploadDTO.setParentId(parentId);
+        return Result.success(nodeService.uploadMarkdownFile(nodeUploadDTO));
     }
 
     @PutMapping

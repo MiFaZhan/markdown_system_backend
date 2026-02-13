@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.mifazhan.domain.convert.NodeConvert;
 import com.mifazhan.domain.dto.NodeDTO;
 import com.mifazhan.domain.dto.NodeUpdateDTO;
+import com.mifazhan.domain.dto.NodeUploadDTO;
 import com.mifazhan.domain.entity.Node;
 import com.mifazhan.domain.entity.MarkdownContent;
 import com.mifazhan.exception.BusinessException;
@@ -19,7 +20,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -219,6 +223,71 @@ public class NodeServiceImpl extends ServiceImpl<NodeMapper, Node>
         for (Node child : children) {
             collectAllNodeIds(child.getNodeId(), nodeIds);
         }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public NodeVO uploadMarkdownFile(NodeUploadDTO nodeUploadDTO) {
+        log.info("开始上传Markdown文件, projectId: {}, parentId: {}", 
+                nodeUploadDTO.getProjectId(), nodeUploadDTO.getParentId());
+
+        MultipartFile file = nodeUploadDTO.getFile();
+        String originalFilename = file.getOriginalFilename();
+
+        if (originalFilename == null || originalFilename.isEmpty()) {
+            throw new BusinessException("文件名不能为空");
+        }
+
+        String extension = getFileExtension(originalFilename);
+        if (!"md".equalsIgnoreCase(extension)) {
+            throw new BusinessException("仅支持上传.md格式的文件");
+        }
+
+        String nodeName = getFileNameWithoutExtension(originalFilename);
+        if (nodeName.isEmpty()) {
+            throw new BusinessException("文件名不能为空");
+        }
+
+        String content;
+        try {
+            content = new String(file.getBytes(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            log.error("读取文件内容失败", e);
+            throw new BusinessException("读取文件内容失败: " + e.getMessage());
+        }
+
+        Node node = new Node();
+        node.setProjectId(nodeUploadDTO.getProjectId());
+        node.setParentId(nodeUploadDTO.getParentId() != null ? nodeUploadDTO.getParentId() : 0L);
+        node.setNodeType(1);
+        node.setNodeName(nodeName);
+
+        this.save(node);
+        log.info("成功插入节点，ID: {}", node.getNodeId());
+
+        MarkdownContent markdownContent = new MarkdownContent();
+        markdownContent.setNodeId(node.getNodeId());
+        markdownContent.setContent(content);
+        markdownContentMapper.insert(markdownContent);
+        log.info("成功在 markdown_content 表中创建记录，节点ID: {}", node.getNodeId());
+
+        return nodeConvert.toVO(node);
+    }
+
+    private String getFileExtension(String filename) {
+        int lastDotIndex = filename.lastIndexOf('.');
+        if (lastDotIndex == -1) {
+            return "";
+        }
+        return filename.substring(lastDotIndex + 1);
+    }
+
+    private String getFileNameWithoutExtension(String filename) {
+        int lastDotIndex = filename.lastIndexOf('.');
+        if (lastDotIndex == -1) {
+            return filename;
+        }
+        return filename.substring(0, lastDotIndex);
     }
 }
 
