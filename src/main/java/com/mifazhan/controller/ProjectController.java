@@ -3,6 +3,7 @@ package com.mifazhan.controller;
 
 import java.util.List;
 
+import com.mifazhan.annotation.RequirePermission;
 import com.mifazhan.domain.dto.ProjectDTO;
 import com.mifazhan.domain.dto.ProjectUpdateDTO;
 import com.mifazhan.domain.vo.ProjectVO;
@@ -43,6 +44,7 @@ public class ProjectController {
      * 查询所有项目列表
      */
     @GetMapping
+    @RequirePermission("project:read")
     public Result<List<ProjectVO>> z(
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(defaultValue = "creation_time") String sortField,
@@ -55,6 +57,7 @@ public class ProjectController {
      * 根据ID查询项目
      */
     @GetMapping("/{projectId}")
+    @RequirePermission("project:read")
     public Result<ProjectVO> getProject(@PathVariable Long projectId) {
         log.info("查询项目, projectId: {}", projectId);
         return Result.success(projectService.getProject(projectId));
@@ -64,6 +67,7 @@ public class ProjectController {
      * 创建项目
      */
     @PostMapping
+    @RequirePermission("project:*")
     public Result<ProjectVO> insertProject(@Valid @RequestBody ProjectDTO projectDTO) {
         log.info("创建项目: {}", projectDTO);
         return Result.success(projectService.insertProject(projectDTO));
@@ -73,6 +77,7 @@ public class ProjectController {
      * 修改项目
      */
     @PutMapping
+    @RequirePermission("project:*")
     public Result<ProjectVO> updateProject(@Valid @RequestBody ProjectUpdateDTO projectUpdateDTO) {
         log.info("修改项目: {}", projectUpdateDTO);
         return Result.success(projectService.updateProject(projectUpdateDTO));
@@ -82,6 +87,7 @@ public class ProjectController {
      * 删除项目
      */
     @DeleteMapping
+    @RequirePermission("project:*")
     public Result<Void> deleteProject(@RequestParam Long projectId) {
         log.info("删除项目, projectId: {}", projectId);
         projectService.deleteProject(projectId);

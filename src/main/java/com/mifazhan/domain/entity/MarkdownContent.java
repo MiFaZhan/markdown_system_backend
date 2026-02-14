@@ -41,5 +41,6 @@ public class MarkdownContent {
     /**
      * 逻辑删除 0否 1是
      */
+    @TableLogic
     private Integer deleted;
 }

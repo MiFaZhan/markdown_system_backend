@@ -5,23 +5,17 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
-@TableName(value = "user")
+@TableName(value = "role")
 @Data
-public class User {
+public class Role {
     @TableId(type = IdType.AUTO)
-    private Long userId;
-
-    private String username;
-
-    private String password;
-
-    private String email;
-
     private Long roleId;
 
-    private String description;
+    private String roleName;
 
-    private Integer status;
+    private String roleCode;
+
+    private String description;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime creationTime;

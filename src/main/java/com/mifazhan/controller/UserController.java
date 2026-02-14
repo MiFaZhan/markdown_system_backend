@@ -1,7 +1,12 @@
 package com.mifazhan.controller;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.mifazhan.annotation.RequirePermission;
 import com.mifazhan.domain.dto.LoginDTO;
 import com.mifazhan.domain.dto.RegisterDTO;
+import com.mifazhan.domain.dto.UserListDTO;
+import com.mifazhan.domain.dto.UserUpdateDTO;
+import com.mifazhan.domain.vo.LoginVO;
 import com.mifazhan.domain.vo.Result;
 import com.mifazhan.domain.vo.UserVO;
 import com.mifazhan.service.UserService;
@@ -26,9 +31,9 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public Result<UserVO> login(@Valid @RequestBody LoginDTO loginDTO) {
-        UserVO userVO = userService.login(loginDTO);
-        return Result.success("登录成功", userVO);
+    public Result<LoginVO> login(@Valid @RequestBody LoginDTO loginDTO) {
+        LoginVO loginVO = userService.login(loginDTO);
+        return Result.success("登录成功", loginVO);
     }
 
     @GetMapping("/info")
@@ -41,6 +46,32 @@ public class UserController {
         Long userId = jwtUtil.getUserIdFromToken(token);
         UserVO userVO = userService.getUserInfo(userId);
         return Result.success(userVO);
+    }
+
+    @GetMapping("/list")
+    @RequirePermission("user:manage")
+    public Result<IPage<UserVO>> listUsers(
+            @RequestParam(defaultValue = "1") Integer pageNum,
+            @RequestParam(defaultValue = "10") Integer pageSize,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) Long roleId) {
+        IPage<UserVO> page = userService.listUsers(pageNum, pageSize, keyword, status, roleId);
+        return Result.success(page);
+    }
+
+    @PutMapping
+    @RequirePermission("user:manage")
+    public Result<UserVO> updateUser(@Valid @RequestBody UserUpdateDTO userUpdateDTO) {
+        UserVO userVO = userService.updateUser(userUpdateDTO);
+        return Result.success(userVO);
+    }
+
+    @DeleteMapping("/{userId}")
+    @RequirePermission("user:manage")
+    public Result<Void> deleteUser(@PathVariable Long userId) {
+        userService.deleteUser(userId);
+        return Result.success();
     }
 
     private String extractToken(HttpServletRequest request) {

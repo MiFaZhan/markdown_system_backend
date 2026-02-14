@@ -2,6 +2,7 @@ package com.mifazhan.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.OrderItem;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.mifazhan.domain.convert.ProjectConvert;
@@ -33,22 +34,22 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project>
     private final ProjectConvert projectConvert;
 
     @Override
-    public Page<ProjectVO> pageProjects(Integer pageNum, Integer pageSize, String sortField, String sortOrder) {
+    public IPage<ProjectVO> pageProjects(Integer pageNum, Integer pageSize, String sortField, String sortOrder) {
         // 创建分页对象，默认值处理
         Page<Project> page = new Page<>(pageNum != null ? pageNum : 1, pageSize != null ? pageSize : 10);
 
         // 添加排序条件
         if ("asc".equalsIgnoreCase(sortOrder)) {
-            page.addOrder(OrderItem.asc(sortField));
+            page.setOrders(java.util.Collections.singletonList(OrderItem.asc(sortField)));
         } else {
-            page.addOrder(OrderItem.desc(sortField));
+            page.setOrders(java.util.Collections.singletonList(OrderItem.desc(sortField)));
         }
 
         // 分页查询
-        Page<Project> projectPage = this.page(page);
+        IPage<Project> projectPage = this.page(page);
 
         // 转换为VO分页对象
-        Page<ProjectVO> voPage = new Page<>(projectPage.getCurrent(), projectPage.getSize(), projectPage.getTotal());
+        IPage<ProjectVO> voPage = new Page<>(projectPage.getCurrent(), projectPage.getSize(), projectPage.getTotal());
         voPage.setRecords(projectConvert.toVOList(projectPage.getRecords()));
 
         return voPage;

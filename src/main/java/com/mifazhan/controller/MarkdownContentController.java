@@ -1,5 +1,6 @@
 package com.mifazhan.controller;
 
+import com.mifazhan.annotation.RequirePermission;
 import com.mifazhan.domain.dto.MarkdownContentDTO;
 import com.mifazhan.domain.vo.MarkdownContentVO;
 import com.mifazhan.domain.vo.Result;
@@ -23,18 +24,18 @@ public class MarkdownContentController {
     private MarkdownContentService markdownContentService;
 
     @GetMapping("/{nodeId}")
+    @RequirePermission("content:read")
     public Result<MarkdownContentVO> getMarkdownContent(@PathVariable Long nodeId) {
         return Result.success(markdownContentService.getMarkdownContentByNodeId(nodeId));
     }
 
     @PutMapping("/{nodeId}")
+    @RequirePermission("content:*")
     public Result<MarkdownContentVO> updateMarkdownContent(
             @PathVariable Long nodeId,
             @Valid @RequestBody MarkdownContentDTO markdownContentDTO) {
         markdownContentDTO.setNodeId(nodeId);
         return Result.success(markdownContentService.updateMarkdownContent(nodeId, markdownContentDTO));
     }
-
-
 
 }

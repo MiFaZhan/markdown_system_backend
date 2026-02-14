@@ -9,11 +9,9 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserVO {
+public class LoginVO {
     private Long userId;
     private String username;
     private String email;
-    private Long roleId;
-    private String description;
-    private Integer status;
+    private String token;
 }

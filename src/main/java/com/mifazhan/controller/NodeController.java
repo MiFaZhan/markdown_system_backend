@@ -1,5 +1,6 @@
 package com.mifazhan.controller;
 
+import com.mifazhan.annotation.RequirePermission;
 import com.mifazhan.domain.dto.NodeDTO;
 import com.mifazhan.domain.dto.NodeUpdateDTO;
 import com.mifazhan.domain.dto.NodeUploadDTO;
@@ -32,16 +33,19 @@ public class NodeController {
      * @return 包含项目信息和节点树的完整响应
      */
     @GetMapping("/tree/{projectId}")
+    @RequirePermission("node:read")
     public Result<NodeTreeVO> getProjectTree(@PathVariable Long projectId) {
         return Result.success(nodeService.getProjectTree(projectId));
     }
 
     @PostMapping
+    @RequirePermission("node:*")
     public Result<NodeVO> insertNode(@Valid @RequestBody NodeDTO nodeDTO) {
         return Result.success(nodeService.insertNode(nodeDTO));
     }
 
     @PostMapping("/upload")
+    @RequirePermission("node:*")
     public Result<NodeVO> uploadMarkdownFile(
             @RequestParam("file") MultipartFile file,
             @RequestParam("projectId") Long projectId,
@@ -54,11 +58,13 @@ public class NodeController {
     }
 
     @PutMapping
+    @RequirePermission("node:*")
     public Result<NodeVO> updateNode(@Valid @RequestBody NodeUpdateDTO nodeUpdateDTO) {
         return Result.success(nodeService.updateNode(nodeUpdateDTO));
     }
 
     @DeleteMapping("/{nodeId}")
+    @RequirePermission("node:*")
     public Result<Void> deleteNode(@PathVariable Long nodeId) {
         nodeService.deleteNode(nodeId);
         return Result.success();

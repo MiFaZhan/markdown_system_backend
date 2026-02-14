@@ -52,9 +52,9 @@ public class Project {
      */
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updateTime;
-
     /**
      * 是否删除 0否 1是
      */
+    @TableLogic
     private Integer deleted;
 }
