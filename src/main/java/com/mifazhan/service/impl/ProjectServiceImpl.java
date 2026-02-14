@@ -12,6 +12,7 @@ import com.mifazhan.domain.entity.Project;
 import com.mifazhan.domain.vo.ProjectVO;
 import com.mifazhan.service.ProjectService;
 import com.mifazhan.mapper.ProjectMapper;
+import com.mifazhan.util.UserContext;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -57,7 +58,10 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project>
 
     @Override
     public List<ProjectVO> listProject(String keyword, String sortField, String sortOrder) {
+        Long currentUserId = UserContext.getCurrentUserId();
+        
         LambdaQueryWrapper<Project> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Project::getUserId, currentUserId.intValue());
         
         if (keyword != null && !keyword.trim().isEmpty()) {
             queryWrapper.like(Project::getProjectName, keyword.trim());
@@ -74,7 +78,12 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project>
 
     @Override
     public ProjectVO getProject(Long projectId) {
+        Long currentUserId = UserContext.getCurrentUserId();
+        
         Project project = this.getById(projectId);
+        if (project == null || !project.getUserId().equals(currentUserId.intValue())) {
+            throw new com.mifazhan.exception.BusinessException(403, "无权限访问该项目");
+        }
         return projectConvert.toVO(project);
     }
 
@@ -84,6 +93,7 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project>
         log.info("开始插入Project: {}", projectDTO);
 
         Project project = projectConvert.toEntity(projectDTO);
+        project.setUserId(UserContext.getCurrentUserId().intValue());
         this.save(project);
         
         log.info("成功保存Project，ID: {}", project.getProjectId());
@@ -94,6 +104,14 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project>
     @Transactional(rollbackFor = Exception.class)
     public ProjectVO updateProject(@Valid ProjectUpdateDTO projectUpdateDTO) {
         log.info("开始修改Project: {}", projectUpdateDTO);
+        
+        Long currentUserId = UserContext.getCurrentUserId();
+        
+        Project existingProject = this.getById(projectUpdateDTO.getProjectId());
+        if (existingProject == null || !existingProject.getUserId().equals(currentUserId.intValue())) {
+            throw new com.mifazhan.exception.BusinessException(403, "无权限修改该项目");
+        }
+        
         Project project = projectConvert.toUpdateEntity(projectUpdateDTO);
         this.updateById(project);
         return projectConvert.toVO(project);
@@ -101,6 +119,13 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project>
 
     @Override
     public void deleteProject(Long projectId) {
+        Long currentUserId = UserContext.getCurrentUserId();
+        
+        Project project = this.getById(projectId);
+        if (project == null || !project.getUserId().equals(currentUserId.intValue())) {
+            throw new com.mifazhan.exception.BusinessException(403, "无权限删除该项目");
+        }
+        
         this.removeById(projectId);
     }
 }
