@@ -1,10 +1,12 @@
 package com.mifazhan.aspect;
 
 import com.mifazhan.annotation.RequirePermission;
+import com.mifazhan.domain.vo.RoleVO;
+import com.mifazhan.domain.vo.UserVO;
 import com.mifazhan.exception.BusinessException;
+import com.mifazhan.service.RoleService;
 import com.mifazhan.service.UserService;
 import com.mifazhan.util.JwtUtil;
-import com.mifazhan.domain.vo.UserVO;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +26,7 @@ import java.util.List;
 public class PermissionAspect {
 
     private final UserService userService;
+    private final RoleService roleService;
     private final JwtUtil jwtUtil;
 
     @Before("@annotation(requirePermission)")
@@ -49,14 +52,23 @@ public class PermissionAspect {
             throw new BusinessException("用户不存在");
         }
 
-//        if (userVO.getPermissions() == null || userVO.getPermissions().isEmpty()) {
-//            throw new BusinessException(403, "无权限访问");
-//        }
+        if (userVO.getRoleId() == null) {
+            throw new BusinessException(403, "用户未分配角色");
+        }
 
-//        List<String> permissions = userVO.getPermissions();
-//        if (!hasPermission(permissions, requiredPermission)) {
-//            throw new BusinessException(403, "无权限访问");
-//        }
+        RoleVO roleVO = roleService.getRoleById(userVO.getRoleId());
+        if (roleVO == null) {
+            throw new BusinessException(403, "角色不存在");
+        }
+
+        if (roleVO.getPermissions() == null || roleVO.getPermissions().isEmpty()) {
+            throw new BusinessException(403, "角色无权限");
+        }
+
+        List<String> permissions = roleVO.getPermissions();
+        if (!hasPermission(permissions, requiredPermission)) {
+            throw new BusinessException(403, "无权限访问");
+        }
     }
 
     private HttpServletRequest getRequest() {
