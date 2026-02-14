@@ -29,6 +29,10 @@ file:
     max-size: 5242880
     url-prefix: /api/images
 
+jwt:
+  secret: mifazhan-markdown-system-jwt-secret-key-2026-very-long-secret
+  expiration: 86400000
+
 # CORS配置
 cors:
   allowed-origins:
