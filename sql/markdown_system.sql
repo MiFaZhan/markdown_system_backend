@@ -48,7 +48,7 @@ CREATE TABLE `node`  (
   `update_time` datetime NOT NULL COMMENT '更新时间',
   `deleted` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否删除：0=否，1=是',
   PRIMARY KEY (`node_id`) USING BTREE,
-  UNIQUE INDEX `uk_node_name`(`project_id` ASC, `parent_id` ASC, `node_name` ASC, `deleted` ASC) USING BTREE,
+  UNIQUE INDEX uk_node_name_active (project_id, parent_id, node_name, (CASE WHEN deleted = 0 THEN 1 ELSE NULL END)),
   INDEX `idx_project_parent`(`project_id` ASC, `parent_id` ASC) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '节点表' ROW_FORMAT = Dynamic;
 
@@ -86,7 +86,6 @@ CREATE TABLE `role`  (
   `role_id` bigint NOT NULL AUTO_INCREMENT COMMENT '角色ID',
   `role_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '角色名称',
   `role_code` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '角色代码（admin/user/guest）',
-  `permissions` json NULL COMMENT '权限列表（JSON数组）',
   `description` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '角色描述',
   `creation_time` datetime NOT NULL COMMENT '创建时间',
   `update_time` datetime NOT NULL COMMENT '更新时间',

@@ -38,6 +38,28 @@ public class NodeController {
         return Result.success(nodeService.getProjectTree(projectId));
     }
 
+    /**
+     * 获取项目的回收站节点树形结构
+     * @param projectId 项目ID
+     * @return 包含项目信息和回收站节点树的完整响应
+     */
+    @GetMapping("/recycle-bin/{projectId}")
+    @RequirePermission("node:read")
+    public Result<NodeTreeVO> getRecycleBinTree(@PathVariable Long projectId) {
+        return Result.success(nodeService.getRecycleBinTree(projectId));
+    }
+
+    /**
+     * 恢复节点（支持递归恢复文件夹）
+     * @param nodeId 节点ID
+     */
+    @PutMapping("/restore/{nodeId}")
+    @RequirePermission("node:*")
+    public Result<Void> restoreNode(@PathVariable Long nodeId) {
+        nodeService.restoreNode(nodeId);
+        return Result.success();
+    }
+
     @PostMapping
     @RequirePermission("node:*")
     public Result<NodeVO> insertNode(@Valid @RequestBody NodeDTO nodeDTO) {
@@ -61,6 +83,17 @@ public class NodeController {
     @RequirePermission("node:*")
     public Result<NodeVO> updateNode(@Valid @RequestBody NodeUpdateDTO nodeUpdateDTO) {
         return Result.success(nodeService.updateNode(nodeUpdateDTO));
+    }
+
+    /**
+     * 物理删除节点（彻底删除，不可恢复）
+     * @param nodeId 节点ID
+     */
+    @DeleteMapping("/physical/{nodeId}")
+    @RequirePermission("node:*")
+    public Result<Void> physicalDeleteNode(@PathVariable Long nodeId) {
+        nodeService.physicalDeleteNode(nodeId);
+        return Result.success();
     }
 
     @DeleteMapping("/{nodeId}")

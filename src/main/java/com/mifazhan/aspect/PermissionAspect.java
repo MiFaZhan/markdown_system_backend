@@ -52,6 +52,10 @@ public class PermissionAspect {
             throw new BusinessException("用户不存在");
         }
 
+        if (userVO.getStatus() != null && userVO.getStatus() == 0) {
+            throw new BusinessException(403, "账号被禁用请联系管理员");
+        }
+
         if (userVO.getRoleId() == null) {
             throw new BusinessException(403, "用户未分配角色");
         }

@@ -3,6 +3,7 @@ package com.mifazhan.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.mifazhan.domain.entity.MarkdownContent;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Update;
 
 /**
  * @author MIFAZHAN
@@ -13,4 +14,11 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface MarkdownContentMapper extends BaseMapper<MarkdownContent> {
 
+    /**
+     * 恢复Markdown内容（将deleted字段置为0）
+     * @param nodeId 节点ID
+     * @return 影响行数
+     */
+    @Update("UPDATE markdown_content SET deleted = 0 WHERE node_id = #{nodeId}")
+    int restoreContent(Long nodeId);
 }

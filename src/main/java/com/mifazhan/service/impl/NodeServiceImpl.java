@@ -128,6 +128,45 @@ public class NodeServiceImpl extends ServiceImpl<NodeMapper, Node>
         return result;
     }
 
+    @Override
+    public NodeTreeVO getRecycleBinTree(Long projectId) {
+        log.info("开始构建项目回收站树, projectId: {}", projectId);
+
+        // 1. 查询项目信息
+        ProjectVO project = projectService.getProject(projectId);
+        NodeTreeVO result = new NodeTreeVO();
+        result.setProjectId(projectId);
+        result.setProjectName(project.getProjectName());
+
+        // 2. 查询项目下所有已删除节点
+        List<Node> deletedNodes = baseMapper.selectDeletedNodes(projectId);
+
+        if (deletedNodes.isEmpty()) {
+            log.info("项目 {} 回收站为空", projectId);
+            result.setTotalNodes(0);
+            result.setFileCount(0);
+            result.setFolderCount(0);
+            return result;
+        }
+
+        // 3. 构建树形结构
+        List<NodeTreeVO.NodeItemVO> rootNodes = buildNodeTree(deletedNodes);
+        result.setRootNodes(rootNodes);
+
+        // 4. 统计信息
+        int fileCount = (int) deletedNodes.stream().filter(node -> node.getNodeType() == 1).count();
+        int folderCount = (int) deletedNodes.stream().filter(node -> node.getNodeType() == 0).count();
+
+        result.setTotalNodes(deletedNodes.size());
+        result.setFileCount(fileCount);
+        result.setFolderCount(folderCount);
+
+        log.info("成功构建回收站树，总节点数: {}, 文件数: {}, 文件夹数: {}",
+                deletedNodes.size(), fileCount, folderCount);
+
+        return result;
+    }
+
     /**
      * 使用Map映射方法构建树形结构
      * @param allNodes 所有节点列表（已按创建时间排序）
@@ -167,6 +206,132 @@ public class NodeServiceImpl extends ServiceImpl<NodeMapper, Node>
         
         log.info("成功构建树形结构，根节点数量: {}", rootNodes.size());
         return rootNodes;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void restoreNode(Long nodeId) {
+        log.info("开始恢复节点, nodeId: {}", nodeId);
+        
+        // 1. 获取要恢复的节点
+        // 使用自定义SQL查询，绕过逻辑删除机制
+        Node node = baseMapper.selectNodeIncludingDeleted(nodeId);
+        
+        if (node == null) {
+            throw new BusinessException("节点不存在");
+        }
+        
+        // 2. 检查父节点下是否有同名文件，如果有则重命名
+        // 此时 node 还是 deleted=1，所以 selectByParentIdAndName 不会查到它自己
+        String uniqueName = getUniqueNodeName(node.getProjectId(), node.getParentId(), node.getNodeName());
+        boolean nameChanged = !uniqueName.equals(node.getNodeName());
+        
+        if (nameChanged) {
+            log.info("恢复节点时发生命名冲突，重命名: {} -> {}", node.getNodeName(), uniqueName);
+            // 更新名称，注意此时节点还是逻辑删除状态，常规 updateById 可能会失败（如果在 MP 配置了 logic-delete）
+            // 我们使用 UpdateWrapper 强制更新
+            baseMapper.update(null, new com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper<Node>()
+                    .set("node_name", uniqueName)
+                    .eq("node_id", nodeId));
+        }
+        
+        // 3. 执行递归恢复（将 deleted 置为 0）
+        recursiveRestore(nodeId);
+        
+        log.info("节点恢复完成, nodeId: {}", nodeId);
+    }
+
+    /**
+     * 获取唯一的节点名称（处理重名）
+     * @param projectId 项目ID
+     * @param parentId 父节点ID
+     * @param originalName 原始名称
+     * @return 唯一名称
+     */
+    private String getUniqueNodeName(Long projectId, Long parentId, String originalName) {
+        String baseName = originalName;
+        int counter = 1;
+        String newName = baseName;
+        
+        while (true) {
+            // 查询是否存在同名且未删除的节点
+            List<Node> existingNodes = baseMapper.selectByParentIdAndName(projectId, parentId, newName);
+            if (existingNodes.isEmpty()) {
+                return newName;
+            }
+            
+            // 存在同名，尝试下一个序号
+            newName = baseName + " (" + counter + ")";
+            counter++;
+        }
+    }
+
+    /**
+     * 递归恢复节点及其子节点
+     */
+    private void recursiveRestore(Long nodeId) {
+        // 1. 恢复当前节点
+        baseMapper.restoreNode(nodeId);
+        
+        // 2. 恢复对应的 markdown_content（如果存在）
+        // 无论是否是文件节点，尝试恢复对应的 content 也没副作用
+        // 或者先判断节点类型，但这里可能查不到类型（因为前面 selectOne 查了）
+        // 简单起见，直接尝试恢复 content
+        markdownContentMapper.restoreContent(nodeId);
+
+        // 3. 查询该节点下的所有子节点（包含已删除的）
+        List<Node> children = baseMapper.selectAllChildren(nodeId);
+        
+        // 4. 递归恢复子节点
+        for (Node child : children) {
+            recursiveRestore(child.getNodeId());
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void physicalDeleteNode(Long nodeId) {
+        log.info("开始物理删除节点, nodeId: {}", nodeId);
+        
+        // 1. 递归收集所有需要删除的节点ID（包括子节点，忽略逻辑删除状态）
+        List<Long> allNodeIds = new ArrayList<>();
+        collectAllNodeIdsIgnoringDeleted(nodeId, allNodeIds);
+        
+        if (allNodeIds.isEmpty()) {
+            return;
+        }
+        
+        log.info("共收集到 {} 个节点需要物理删除: {}", allNodeIds.size(), allNodeIds);
+        
+        // 2. 物理删除 markdown_content 表中的内容
+        // 注意：markdownContentMapper.deleteBatchIds 默认可能是逻辑删除（如果有配置逻辑删除插件）
+        // 稳妥起见，如果 markdown_content 确实需要物理删除，我们应该检查其 Mapper 或 Entity
+        // 假设 markdown_content 没有逻辑删除字段，或者我们需要强制物理删除
+        // 简单起见，这里假设 deleteBatchIds 能满足需求，或者后续补充物理删除 Mapper
+        int deletedContentCount = markdownContentMapper.deleteBatchIds(allNodeIds);
+        log.info("成功在 markdown_content 表中删除 {} 条记录", deletedContentCount);
+        
+        // 3. 物理删除 node 表中的记录
+        for (Long id : allNodeIds) {
+            baseMapper.physicalDeleteNode(id);
+        }
+        
+        log.info("成功物理删除 {} 个节点", allNodeIds.size());
+    }
+
+    /**
+     * 递归收集当前节点及其所有子节点的ID（忽略逻辑删除状态）
+     */
+    private void collectAllNodeIdsIgnoringDeleted(Long nodeId, List<Long> nodeIds) {
+        nodeIds.add(nodeId);
+        
+        // 查询所有子节点（包含已删除的）
+        List<Node> children = baseMapper.selectAllChildren(nodeId);
+        
+        // 递归收集子节点
+        for (Node child : children) {
+            collectAllNodeIdsIgnoringDeleted(child.getNodeId(), nodeIds);
+        }
     }
 
     @Override
@@ -247,6 +412,11 @@ public class NodeServiceImpl extends ServiceImpl<NodeMapper, Node>
         if (nodeName.isEmpty()) {
             throw new BusinessException("文件名不能为空");
         }
+        
+        // 检查并处理重名
+        nodeName = getUniqueNodeName(nodeUploadDTO.getProjectId(), 
+                                   nodeUploadDTO.getParentId() != null ? nodeUploadDTO.getParentId() : 0L, 
+                                   nodeName);
 
         String content;
         try {

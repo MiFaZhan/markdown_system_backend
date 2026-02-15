@@ -29,6 +29,25 @@ public interface NodeService extends IService<Node> {
      */
     NodeTreeVO getProjectTree(Long projectId);
 
+    /**
+     * 获取项目的回收站节点树形结构
+     * @param projectId 项目ID
+     * @return 包含项目信息和回收站节点树的完整响应
+     */
+    NodeTreeVO getRecycleBinTree(Long projectId);
+
+    /**
+     * 恢复节点（支持递归恢复文件夹）
+     * @param nodeId 节点ID
+     */
+    void restoreNode(Long nodeId);
+
+    /**
+     * 物理删除节点（彻底删除，不可恢复）
+     * @param nodeId 节点ID
+     */
+    void physicalDeleteNode(Long nodeId);
+
     Long deleteNode(Long nodeId);
 
     NodeVO updateNode(@Valid NodeUpdateDTO nodeUpdateDTO);
