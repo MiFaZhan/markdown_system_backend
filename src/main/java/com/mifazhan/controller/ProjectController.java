@@ -45,7 +45,7 @@ public class ProjectController {
      */
     @GetMapping
     @RequirePermission("project:read")
-    public Result<List<ProjectVO>> z(
+    public Result<List<ProjectVO>> listProject(
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(defaultValue = "creation_time") String sortField,
             @RequestParam(defaultValue = "asc") String sortOrder) {
@@ -94,4 +94,38 @@ public class ProjectController {
         return Result.success();
     }
 
+    /**
+     * 查询回收站项目列表
+     */
+    @GetMapping("/recycle-bin")
+    @RequirePermission("project:read")
+    public Result<List<ProjectVO>> listRecycleBinProjects(
+            @RequestParam(defaultValue = "") String keyword,
+            @RequestParam(defaultValue = "creation_time") String sortField,
+            @RequestParam(defaultValue = "asc") String sortOrder) {
+        log.info("查询回收站项目列表, keyword: {}, sortField: {}, sortOrder: {}", keyword, sortField, sortOrder);
+        return Result.success(projectService.listRecycleBinProjects(keyword, sortField, sortOrder));
+    }
+
+    /**
+     * 恢复项目
+     */
+    @PutMapping("/restore/{projectId}")
+    @RequirePermission("project:*")
+    public Result<Void> restoreProject(@PathVariable Long projectId) {
+        log.info("恢复项目, projectId: {}", projectId);
+        projectService.restoreProject(projectId);
+        return Result.success();
+    }
+
+    /**
+     * 彻底删除项目
+     */
+    @DeleteMapping("/physical/{projectId}")
+    @RequirePermission("project:*")
+    public Result<Void> physicalDeleteProject(@PathVariable Long projectId) {
+        log.info("彻底删除项目, projectId: {}", projectId);
+        projectService.physicalDeleteProject(projectId);
+        return Result.success();
+    }
 }

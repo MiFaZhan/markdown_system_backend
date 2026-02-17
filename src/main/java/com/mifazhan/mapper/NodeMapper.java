@@ -36,6 +36,16 @@ public interface NodeMapper extends BaseMapper<Node> {
     int restoreNode(Long nodeId);
 
     /**
+     * 更新节点名称（忽略逻辑删除状态）
+     * @param nodeId 节点ID
+     * @param nodeName 新的节点名称
+     * @return 影响行数
+     */
+    @Update("UPDATE node SET node_name = #{nodeName} WHERE node_id = #{nodeId}")
+    int updateNodeNameIgnoringDeleted(@org.apache.ibatis.annotations.Param("nodeId") Long nodeId,
+                                      @org.apache.ibatis.annotations.Param("nodeName") String nodeName);
+
+    /**
      * 查询指定父节点的所有子节点（包含已逻辑删除的）
      * @param parentId 父节点ID
      * @return 子节点列表
@@ -68,6 +78,15 @@ public interface NodeMapper extends BaseMapper<Node> {
      */
     @Select("SELECT * FROM node WHERE node_id = #{nodeId}")
     Node selectNodeIncludingDeleted(Long nodeId);
+
+    @Update("UPDATE node SET deleted = 0 WHERE project_id = #{projectId}")
+    void restoreNodesByProjectId(Long projectId);
+
+    @Delete("DELETE FROM node WHERE project_id = #{projectId}")
+    void physicalDeleteNodesByProjectId(Long projectId);
+
+    @Select("SELECT * FROM node WHERE project_id = #{projectId}")
+    List<Node> selectAllNodesByProjectId(Long projectId);
 }
 
 

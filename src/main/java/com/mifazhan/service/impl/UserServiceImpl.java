@@ -66,7 +66,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
 
         if (user.getStatus() == 0) {
-            throw new BusinessException("账号已被禁用");
+            throw new BusinessException("账号被禁用请联系管理员");
         }
 
         if (!passwordEncoder.matches(loginDTO.getPassword(), user.getPassword())) {

@@ -12,6 +12,7 @@ import com.mifazhan.exception.BusinessException;
 import com.mifazhan.domain.vo.NodeVO;
 import com.mifazhan.domain.vo.NodeTreeVO;
 import com.mifazhan.domain.vo.ProjectVO;
+import com.mifazhan.service.ImageService;
 import com.mifazhan.service.NodeService;
 import com.mifazhan.service.ProjectService;
 import com.mifazhan.mapper.NodeMapper;
@@ -44,6 +45,7 @@ public class NodeServiceImpl extends ServiceImpl<NodeMapper, Node>
     private final NodeConvert nodeConvert;
     private final MarkdownContentMapper markdownContentMapper;
     private final ProjectService projectService;
+    private final ImageService imageService;
 
     @Override
     public List<NodeVO> listNode() {
@@ -223,16 +225,14 @@ public class NodeServiceImpl extends ServiceImpl<NodeMapper, Node>
         
         // 2. 检查父节点下是否有同名文件，如果有则重命名
         // 此时 node 还是 deleted=1，所以 selectByParentIdAndName 不会查到它自己
-        String uniqueName = getUniqueNodeName(node.getProjectId(), node.getParentId(), node.getNodeName());
+        Long parentId = node.getParentId() != null ? node.getParentId() : 0L;
+        String uniqueName = getUniqueNodeName(node.getProjectId(), parentId, node.getNodeName());
         boolean nameChanged = !uniqueName.equals(node.getNodeName());
         
         if (nameChanged) {
             log.info("恢复节点时发生命名冲突，重命名: {} -> {}", node.getNodeName(), uniqueName);
-            // 更新名称，注意此时节点还是逻辑删除状态，常规 updateById 可能会失败（如果在 MP 配置了 logic-delete）
-            // 我们使用 UpdateWrapper 强制更新
-            baseMapper.update(null, new com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper<Node>()
-                    .set("node_name", uniqueName)
-                    .eq("node_id", nodeId));
+            // 使用自定义SQL更新名称，忽略逻辑删除状态
+            baseMapper.updateNodeNameIgnoringDeleted(nodeId, uniqueName);
         }
         
         // 3. 执行递归恢复（将 deleted 置为 0）
@@ -292,6 +292,14 @@ public class NodeServiceImpl extends ServiceImpl<NodeMapper, Node>
     @Transactional(rollbackFor = Exception.class)
     public void physicalDeleteNode(Long nodeId) {
         log.info("开始物理删除节点, nodeId: {}", nodeId);
+
+        // 0. 获取根节点信息（用于获取projectId）
+        Node rootNode = baseMapper.selectNodeIncludingDeleted(nodeId);
+        if (rootNode == null) {
+            log.warn("节点不存在, nodeId: {}", nodeId);
+            return;
+        }
+        Long projectId = rootNode.getProjectId();
         
         // 1. 递归收集所有需要删除的节点ID（包括子节点，忽略逻辑删除状态）
         List<Long> allNodeIds = new ArrayList<>();
@@ -311,8 +319,15 @@ public class NodeServiceImpl extends ServiceImpl<NodeMapper, Node>
         int deletedContentCount = markdownContentMapper.deleteBatchIds(allNodeIds);
         log.info("成功在 markdown_content 表中删除 {} 条记录", deletedContentCount);
         
-        // 3. 物理删除 node 表中的记录
+        // 3. 物理删除 node 表中的记录，并同步删除图片文件
         for (Long id : allNodeIds) {
+            // 同步删除图片文件
+            try {
+                imageService.deleteNodeImages(projectId, id);
+            } catch (Exception e) {
+                log.error("删除节点图片失败: projectId={}, nodeId={}", projectId, id, e);
+            }
+
             baseMapper.physicalDeleteNode(id);
         }
         
@@ -460,7 +475,6 @@ public class NodeServiceImpl extends ServiceImpl<NodeMapper, Node>
         return filename.substring(0, lastDotIndex);
     }
 }
-
 
 
 

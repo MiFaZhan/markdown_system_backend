@@ -27,4 +27,10 @@ public interface ProjectService extends IService<Project> {
     ProjectVO updateProject(@Valid ProjectUpdateDTO projectUpdateDTO);
 
     void deleteProject(Long projectId);
+
+    List<ProjectVO> listRecycleBinProjects(String keyword, String sortField, String sortOrder);
+
+    void restoreProject(Long projectId);
+
+    void physicalDeleteProject(Long projectId);
 }

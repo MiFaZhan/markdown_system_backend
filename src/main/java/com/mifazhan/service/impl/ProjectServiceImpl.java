@@ -19,13 +19,18 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.mifazhan.mapper.NodeMapper;
+import com.mifazhan.mapper.MarkdownContentMapper;
+import com.mifazhan.domain.entity.Node;
+import com.mifazhan.domain.entity.MarkdownContent;
+import java.util.stream.Collectors;
 import java.util.List;
 
 /**
-* @author MIFAZHAN
-* @description 针对表【project】的数据库操作Service实现
-* @createDate 2025-12-29 20:19:09
-*/
+ * @author MIFAZHAN
+ * @description 针对表【project】的数据库操作Service实现
+ * @createDate 2025-12-29 20:19:09
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -33,6 +38,8 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project>
     implements ProjectService {
 
     private final ProjectConvert projectConvert;
+    private final NodeMapper nodeMapper;
+    private final MarkdownContentMapper markdownContentMapper;
 
     @Override
     public IPage<ProjectVO> pageProjects(Integer pageNum, Integer pageSize, String sortField, String sortOrder) {
@@ -118,6 +125,7 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project>
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void deleteProject(Long projectId) {
         Long currentUserId = UserContext.getCurrentUserId();
         
@@ -125,9 +133,145 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project>
         if (project == null || !project.getUserId().equals(currentUserId.intValue())) {
             throw new com.mifazhan.exception.BusinessException(403, "无权限删除该项目");
         }
+
+        // 1. 查询项目下所有节点
+        LambdaQueryWrapper<Node> nodeQueryWrapper = new LambdaQueryWrapper<>();
+        nodeQueryWrapper.eq(Node::getProjectId, projectId);
+        List<Node> nodes = nodeMapper.selectList(nodeQueryWrapper);
+
+        if (!nodes.isEmpty()) {
+            List<Long> nodeIds = nodes.stream().map(Node::getNodeId).collect(Collectors.toList());
+
+            // 2. 删除节点对应的内容
+            LambdaQueryWrapper<MarkdownContent> contentQueryWrapper = new LambdaQueryWrapper<>();
+            contentQueryWrapper.in(MarkdownContent::getNodeId, nodeIds);
+            markdownContentMapper.delete(contentQueryWrapper);
+
+            // 3. 删除所有节点
+            nodeMapper.delete(nodeQueryWrapper);
+            
+            log.info("级联删除了 {} 个节点及其内容", nodes.size());
+        }
         
+        // 4. 删除项目
         this.removeById(projectId);
+        log.info("成功删除项目: {}", projectId);
+    }
+
+    @Override
+    public List<ProjectVO> listRecycleBinProjects(String keyword, String sortField, String sortOrder) {
+        Long currentUserId = UserContext.getCurrentUserId();
+        
+        // 验证排序字段，防止SQL注入
+        String safeSortField = "creation_time"; // 默认
+        if ("update_time".equalsIgnoreCase(sortField)) {
+            safeSortField = "update_time";
+        } else if ("project_name".equalsIgnoreCase(sortField)) {
+            safeSortField = "project_name";
+        }
+        
+        // 验证排序顺序
+        String safeSortOrder = "asc".equalsIgnoreCase(sortOrder) ? "ASC" : "DESC";
+
+        List<Project> projects = baseMapper.selectDeletedProjects(currentUserId.intValue(), keyword, safeSortField, safeSortOrder);
+        return projectConvert.toVOList(projects);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void restoreProject(Long projectId) {
+        Long currentUserId = UserContext.getCurrentUserId();
+        
+        // Use custom select to include deleted projects
+        Project project = baseMapper.selectProjectIncludingDeleted(projectId);
+        
+        if (project == null || !project.getUserId().equals(currentUserId.intValue())) {
+            throw new com.mifazhan.exception.BusinessException(403, "无权限恢复该项目");
+        }
+
+        // 检查当前用户下是否存在同名未删除项目，如有则按 "名称 (1)" 规则重命名
+        String originalName = project.getProjectName();
+        String uniqueName = getUniqueProjectName(project.getUserId(), originalName);
+        if (!uniqueName.equals(originalName)) {
+            log.info("恢复项目时发生命名冲突，重命名: {} -> {}", originalName, uniqueName);
+            baseMapper.updateProjectNameIgnoringDeleted(projectId, uniqueName);
+        }
+        
+        // Restore project
+        baseMapper.restoreProject(projectId);
+        
+        // Restore nodes
+        nodeMapper.restoreNodesByProjectId(projectId);
+        
+        // Restore content
+        List<Node> nodes = nodeMapper.selectAllNodesByProjectId(projectId);
+        if (!nodes.isEmpty()) {
+            List<Long> nodeIds = nodes.stream()
+                .filter(n -> n.getNodeType() == 1) // Only files have content
+                .map(Node::getNodeId)
+                .collect(Collectors.toList());
+            if (!nodeIds.isEmpty()) {
+                markdownContentMapper.restoreContentByNodeIds(nodeIds);
+            }
+        }
+        
+        log.info("成功恢复项目: {}", projectId);
+    }
+
+    /**
+     * 获取当前用户下唯一的项目名称（仅考虑未删除项目）
+     * @param userId 用户ID
+     * @param originalName 原始项目名称
+     * @return 不与现有未删除项目冲突的名称
+     */
+    private String getUniqueProjectName(Integer userId, String originalName) {
+        String baseName = originalName;
+        String newName = baseName;
+        int counter = 1;
+
+        while (true) {
+            long count = this.lambdaQuery()
+                    .eq(Project::getUserId, userId)
+                    .eq(Project::getProjectName, newName)
+                    .count();
+            if (count == 0) {
+                return newName;
+            }
+
+            newName = baseName + " (" + counter + ")";
+            counter++;
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void physicalDeleteProject(Long projectId) {
+        Long currentUserId = UserContext.getCurrentUserId();
+        
+        Project project = baseMapper.selectProjectIncludingDeleted(projectId);
+        if (project == null || !project.getUserId().equals(currentUserId.intValue())) {
+            throw new com.mifazhan.exception.BusinessException(403, "无权限删除该项目");
+        }
+        
+        // Delete content first
+        List<Node> nodes = nodeMapper.selectAllNodesByProjectId(projectId);
+        if (!nodes.isEmpty()) {
+             List<Long> nodeIds = nodes.stream()
+                .filter(n -> n.getNodeType() == 1)
+                .map(Node::getNodeId)
+                .collect(Collectors.toList());
+            if (!nodeIds.isEmpty()) {
+                markdownContentMapper.physicalDeleteContentByNodeIds(nodeIds);
+            }
+        }
+        
+        // Delete nodes
+        nodeMapper.physicalDeleteNodesByProjectId(projectId);
+        
+        // Delete project
+        baseMapper.physicalDeleteProject(projectId);
+        
+        log.info("成功物理删除项目: {}", projectId);
     }
 }
-
 

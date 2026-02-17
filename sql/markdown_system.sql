@@ -70,7 +70,7 @@ CREATE TABLE `project`  (
   `update_time` datetime NOT NULL COMMENT '更新时间',
   `deleted` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否删除 0否 1是',
   PRIMARY KEY (`project_id`) USING BTREE,
-  UNIQUE INDEX `uk_user_project`(`user_id` ASC, `project_name` ASC, `deleted` ASC) USING BTREE,
+  UNIQUE INDEX `uk_user_project_active`(`user_id`, `project_name`, (CASE WHEN deleted = 0 THEN 1 ELSE NULL END)),
   INDEX `idx_user_update_time`(`user_id` ASC, `deleted` ASC, `update_time` ASC) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '项目表' ROW_FORMAT = Dynamic;
 
