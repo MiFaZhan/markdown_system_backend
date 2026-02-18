@@ -25,7 +25,7 @@ CREATE TABLE `markdown_content`  (
   `node_id` bigint NOT NULL COMMENT '节点ID',
   `content` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL COMMENT 'Markdown 内容',
   `version` int NOT NULL DEFAULT 1 COMMENT '版本号',
-  `update_time` datetime NOT NULL COMMENT '内容更新时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '内容更新时间',
   `deleted` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否删除：0=否，1=是',
   PRIMARY KEY (`node_id`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = 'Markdown内容表' ROW_FORMAT = Dynamic;
@@ -44,8 +44,8 @@ CREATE TABLE `node`  (
   `parent_id` bigint NULL DEFAULT NULL COMMENT '父节点ID（NULL 表示项目根）',
   `node_type` tinyint NOT NULL COMMENT '节点类型：0=文件夹，1=文件',
   `node_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '节点名称',
-  `creation_time` datetime NOT NULL COMMENT '创建时间',
-  `update_time` datetime NOT NULL COMMENT '更新时间',
+  `creation_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   `deleted` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否删除：0=否，1=是',
   PRIMARY KEY (`node_id`) USING BTREE,
   UNIQUE INDEX uk_node_name_active (project_id, parent_id, node_name, (CASE WHEN deleted = 0 THEN 1 ELSE NULL END)),
@@ -66,8 +66,8 @@ CREATE TABLE `project`  (
   `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL COMMENT '项目描述',
   `icon` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT '?' COMMENT '图标',
   `user_id` bigint NOT NULL COMMENT '所属用户ID',
-  `creation_time` datetime NOT NULL COMMENT '创建时间',
-  `update_time` datetime NOT NULL COMMENT '更新时间',
+  `creation_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   `deleted` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否删除 0否 1是',
   PRIMARY KEY (`project_id`) USING BTREE,
   UNIQUE INDEX `uk_user_project_active`(`user_id`, `project_name`, (CASE WHEN deleted = 0 THEN 1 ELSE NULL END)),
@@ -85,21 +85,20 @@ DROP TABLE IF EXISTS `role`;
 CREATE TABLE `role`  (
   `role_id` bigint NOT NULL AUTO_INCREMENT COMMENT '角色ID',
   `role_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '角色名称',
-  `role_code` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '角色代码（admin/user/guest）',
+  `role_code` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '角色代码（admin/user）',
   `description` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '角色描述',
-  `creation_time` datetime NOT NULL COMMENT '创建时间',
-  `update_time` datetime NOT NULL COMMENT '更新时间',
+  `creation_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   `deleted` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否删除',
   PRIMARY KEY (`role_id`) USING BTREE,
   UNIQUE INDEX `uk_role_code`(`role_code` ASC, `deleted` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '角色表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '角色表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of role
 -- ----------------------------
-INSERT INTO `role` VALUES (1, '管理员', 'admin', '系统管理员，拥有最高权限', '2026-02-14 16:34:53', '2026-02-14 16:34:53', 0);
-INSERT INTO `role` VALUES (2, '用户', 'user', '普通用户，可以管理自己的项目', '2026-02-14 16:34:53', '2026-02-14 16:34:53', 0);
-INSERT INTO `role` VALUES (3, '游客', 'guest', '游客，只能查看不能修改', '2026-02-14 16:34:53', '2026-02-14 16:34:53', 0);
+INSERT INTO `role` (`role_id`, `role_name`, `role_code`, `description`, `deleted`) VALUES (1, '管理员', 'admin', '系统管理员，拥有最高权限', 0);
+INSERT INTO `role` (`role_id`, `role_name`, `role_code`, `description`, `deleted`) VALUES (2, '用户', 'user', '普通用户，可以管理自己的项目', 0);
 
 -- ----------------------------
 -- Table structure for user
@@ -113,8 +112,8 @@ CREATE TABLE `user`  (
   `role_id` bigint NULL DEFAULT 2 COMMENT '角色ID（默认为普通用户）',
   `description` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL,
   `status` tinyint(1) NULL DEFAULT 1 COMMENT '启用状态：0=禁用，1=正常',
-  `creation_time` datetime NOT NULL COMMENT '创建时间',
-  `update_time` datetime NOT NULL COMMENT '更新时间',
+  `creation_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   `deleted` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否删除：0=否，1=是',
   PRIMARY KEY (`user_id`) USING BTREE,
   UNIQUE INDEX `username`(`username` ASC) USING BTREE,
@@ -127,7 +126,7 @@ CREATE TABLE `user`  (
 -- ----------------------------
 -- Records of user
 -- ----------------------------
-INSERT INTO `user` VALUES (1, 'admin', '$2a$10$LvkQMx.tCCspDvuQdSmOfei1ffnGgO/V8ifBndZt9zvqfSba3D1QW', 'admin123@markdown.com', 1, '系统管理员', 1, '2026-02-14 16:39:42', '2026-02-14 16:39:42', 0);
+INSERT INTO `user` (`user_id`, `username`, `password`, `email`, `role_id`, `description`, `status`, `deleted`) VALUES (1, 'admin', '$2a$10$LvkQMx.tCCspDvuQdSmOfei1ffnGgO/V8ifBndZt9zvqfSba3D1QW', 'admin123@markdown.com', 1, '系统管理员', 1, 0);
 
 -- ----------------------------
 -- Table structure for permission
@@ -138,8 +137,8 @@ CREATE TABLE `permission`  (
   `permission_code` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '权限代码（如 user:read）',
   `permission_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '权限名称',
   `description` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '权限描述',
-  `creation_time` datetime NOT NULL COMMENT '创建时间',
-  `update_time` datetime NOT NULL COMMENT '更新时间',
+  `creation_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   `deleted` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否删除',
   PRIMARY KEY (`permission_id`) USING BTREE,
   UNIQUE INDEX `uk_permission_code`(`permission_code` ASC, `deleted` ASC) USING BTREE
@@ -148,13 +147,10 @@ CREATE TABLE `permission`  (
 -- ----------------------------
 -- Records of permission
 -- ----------------------------
-INSERT INTO `permission` VALUES (1, 'user:manage', '用户管理', '管理系统用户', '2026-02-14 16:34:53', '2026-02-14 16:34:53', 0);
-INSERT INTO `permission` VALUES (2, 'project:*', '项目管理', '拥有项目的所有权限', '2026-02-14 16:34:53', '2026-02-14 16:34:53', 0);
-INSERT INTO `permission` VALUES (3, 'node:*', '节点管理', '拥有节点的所有权限', '2026-02-14 16:34:53', '2026-02-14 16:34:53', 0);
-INSERT INTO `permission` VALUES (4, 'content:*', '内容管理', '拥有内容的所有权限', '2026-02-14 16:34:53', '2026-02-14 16:34:53', 0);
-INSERT INTO `permission` VALUES (5, 'project:read', '查看项目', '可以查看项目', '2026-02-14 16:34:53', '2026-02-14 16:34:53', 0);
-INSERT INTO `permission` VALUES (6, 'node:read', '查看节点', '可以查看节点', '2026-02-14 16:34:53', '2026-02-14 16:34:53', 0);
-INSERT INTO `permission` VALUES (7, 'content:read', '查看内容', '可以查看内容', '2026-02-14 16:34:53', '2026-02-14 16:34:53', 0);
+INSERT INTO `permission` (`permission_id`, `permission_code`, `permission_name`, `description`, `deleted`) VALUES (1, 'user:manage', '用户管理', '管理系统用户', 0);
+INSERT INTO `permission` (`permission_id`, `permission_code`, `permission_name`, `description`, `deleted`) VALUES (2, 'project:*', '项目管理', '拥有项目的所有权限', 0);
+INSERT INTO `permission` (`permission_id`, `permission_code`, `permission_name`, `description`, `deleted`) VALUES (3, 'node:*', '节点管理', '拥有节点的所有权限', 0);
+INSERT INTO `permission` (`permission_id`, `permission_code`, `permission_name`, `description`, `deleted`) VALUES (4, 'content:*', '内容管理', '拥有内容的所有权限', 0);
 
 -- ----------------------------
 -- Table structure for role_permission
@@ -164,8 +160,8 @@ CREATE TABLE `role_permission`  (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
   `role_id` bigint NOT NULL COMMENT '角色ID',
   `permission_id` bigint NOT NULL COMMENT '权限ID',
-  `creation_time` datetime NOT NULL COMMENT '创建时间',
-  `update_time` datetime NOT NULL COMMENT '更新时间',
+  `creation_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   `deleted` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否删除',
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `uk_role_permission`(`role_id` ASC, `permission_id` ASC, `deleted` ASC) USING BTREE,
@@ -176,15 +172,39 @@ CREATE TABLE `role_permission`  (
 -- ----------------------------
 -- Records of role_permission
 -- ----------------------------
-INSERT INTO `role_permission` VALUES (1, 1, 1, '2026-02-14 16:34:53', '2026-02-14 16:34:53', 0);
-INSERT INTO `role_permission` VALUES (2, 1, 2, '2026-02-14 16:34:53', '2026-02-14 16:34:53', 0);
-INSERT INTO `role_permission` VALUES (3, 1, 3, '2026-02-14 16:34:53', '2026-02-14 16:34:53', 0);
-INSERT INTO `role_permission` VALUES (4, 1, 4, '2026-02-14 16:34:53', '2026-02-14 16:34:53', 0);
-INSERT INTO `role_permission` VALUES (5, 2, 2, '2026-02-14 16:34:53', '2026-02-14 16:34:53', 0);
-INSERT INTO `role_permission` VALUES (6, 2, 3, '2026-02-14 16:34:53', '2026-02-14 16:34:53', 0);
-INSERT INTO `role_permission` VALUES (7, 2, 4, '2026-02-14 16:34:53', '2026-02-14 16:34:53', 0);
-INSERT INTO `role_permission` VALUES (8, 3, 5, '2026-02-14 16:34:53', '2026-02-14 16:34:53', 0);
-INSERT INTO `role_permission` VALUES (9, 3, 6, '2026-02-14 16:34:53', '2026-02-14 16:34:53', 0);
-INSERT INTO `role_permission` VALUES (10, 3, 7, '2026-02-14 16:34:53', '2026-02-14 16:34:53', 0);
+INSERT INTO `role_permission` (`id`, `role_id`, `permission_id`, `deleted`) VALUES (1, 1, 1, 0);
+INSERT INTO `role_permission` (`id`, `role_id`, `permission_id`, `deleted`) VALUES (2, 1, 2, 0);
+INSERT INTO `role_permission` (`id`, `role_id`, `permission_id`, `deleted`) VALUES (3, 1, 3, 0);
+INSERT INTO `role_permission` (`id`, `role_id`, `permission_id`, `deleted`) VALUES (4, 1, 4, 0);
+INSERT INTO `role_permission` (`id`, `role_id`, `permission_id`, `deleted`) VALUES (5, 2, 2, 0);
+INSERT INTO `role_permission` (`id`, `role_id`, `permission_id`, `deleted`) VALUES (6, 2, 3, 0);
+INSERT INTO `role_permission` (`id`, `role_id`, `permission_id`, `deleted`) VALUES (7, 2, 4, 0);
+
+-- ----------------------------
+-- Table structure for share_link
+-- ----------------------------
+DROP TABLE IF EXISTS `share_link`;
+CREATE TABLE `share_link` (
+  `share_id` bigint NOT NULL AUTO_INCREMENT COMMENT '分享ID',
+  `target_type` tinyint NOT NULL COMMENT '分享类型：0=文件夹，1=文件，2=项目',
+  `target_id` bigint NOT NULL COMMENT '目标ID（node_id 或 project_id）',
+  `user_id` bigint NOT NULL COMMENT '创建分享的用户ID',
+  `share_code` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '分享码（唯一，用于生成短链接）',
+  `password` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '访问密码（可选，NULL表示无密码）',
+  `expire_time` datetime NULL DEFAULT NULL COMMENT '过期时间（NULL表示永不过期）',
+  `view_count` int NOT NULL DEFAULT 0 COMMENT '访问次数',
+  `creation_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `deleted` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否删除：0=否，1=是',
+  PRIMARY KEY (`share_id`) USING BTREE,
+  UNIQUE INDEX `uk_share_code`(`share_code` ASC, `deleted` ASC) USING BTREE,
+  INDEX `idx_target`(`target_type` ASC, `target_id` ASC) USING BTREE,
+  INDEX `idx_user_id`(`user_id` ASC) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci 
+COMMENT = '分享链接表' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of share_link
+-- ----------------------------
 
 SET FOREIGN_KEY_CHECKS = 1;

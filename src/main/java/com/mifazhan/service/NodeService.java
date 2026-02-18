@@ -20,7 +20,6 @@ public interface NodeService extends IService<Node> {
 
     NodeVO insertNode(NodeDTO nodeDTO);
 
-    List<NodeVO> listNode();
 
     /**
      * 获取项目的节点树形结构
@@ -28,6 +27,20 @@ public interface NodeService extends IService<Node> {
      * @return 包含项目信息和节点树的完整响应
      */
     NodeTreeVO getProjectTree(Long projectId);
+
+    /**
+     * 获取项目的节点树形结构（公开访问，不校验权限）
+     * @param projectId 项目ID
+     * @return 包含项目信息和节点树的完整响应
+     */
+    NodeTreeVO getProjectTreePublic(Long projectId);
+
+    /**
+     * 获取文件夹的节点树形结构（公开访问，不校验权限）
+     * @param folderId 文件夹ID
+     * @return 包含文件夹信息和子节点树的完整响应
+     */
+    NodeTreeVO getFolderTreePublic(Long folderId);
 
     /**
      * 获取项目的回收站节点树形结构

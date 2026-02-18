@@ -15,10 +15,15 @@ import com.mifazhan.domain.vo.ProjectVO;
 import com.mifazhan.service.ImageService;
 import com.mifazhan.service.NodeService;
 import com.mifazhan.service.ProjectService;
+import com.mifazhan.service.ShareLinkService;
+import com.mifazhan.service.helper.NodeTreeHelper;
 import com.mifazhan.mapper.NodeMapper;
 import com.mifazhan.mapper.MarkdownContentMapper;
+import com.mifazhan.mapper.ProjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -26,6 +31,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Collections;
+import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,14 +52,15 @@ public class NodeServiceImpl extends ServiceImpl<NodeMapper, Node>
 
     private final NodeConvert nodeConvert;
     private final MarkdownContentMapper markdownContentMapper;
-    private final ProjectService projectService;
+    @Autowired
+    @Lazy
+    private ProjectService projectService;
     private final ImageService imageService;
-
-    @Override
-    public List<NodeVO> listNode() {
-        List<Node> result = this.list();
-        return nodeConvert.toVOList(result);
-    }
+    private final ProjectMapper projectMapper;
+    @Autowired
+    @Lazy
+    private ShareLinkService shareLinkService;
+    private final NodeTreeHelper nodeTreeHelper;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -113,7 +122,7 @@ public class NodeServiceImpl extends ServiceImpl<NodeMapper, Node>
         }
         
         // 3. 构建树形结构
-        List<NodeTreeVO.NodeItemVO> rootNodes = buildNodeTree(allNodes);
+        List<NodeTreeVO.NodeItemVO> rootNodes = nodeTreeHelper.buildNodeTree(allNodes);
         result.setRootNodes(rootNodes);
         
         // 4. 统计信息
@@ -127,6 +136,93 @@ public class NodeServiceImpl extends ServiceImpl<NodeMapper, Node>
         log.info("成功构建项目树，总节点数: {}, 文件数: {}, 文件夹数: {}", 
                 allNodes.size(), fileCount, folderCount);
         
+        return result;
+    }
+
+    @Override
+    public NodeTreeVO getProjectTreePublic(Long projectId) {
+        log.info("开始构建公开项目节点树, projectId: {}", projectId);
+        
+        // 1. 查询项目信息 (直接查库，不校验权限)
+        com.mifazhan.domain.entity.Project project = projectMapper.selectById(projectId);
+        if (project == null) {
+            throw new BusinessException("项目不存在");
+        }
+        
+        NodeTreeVO result = new NodeTreeVO();
+        result.setProjectId(projectId);
+        result.setProjectName(project.getProjectName());
+        
+        // 2. 查询项目下所有节点，按创建时间升序排序
+        LambdaQueryWrapper<Node> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Node::getProjectId, projectId)
+                   .orderByAsc(Node::getCreationTime); // 按创建时间升序排序
+        
+        List<Node> allNodes = this.list(queryWrapper);
+        
+        if (allNodes.isEmpty()) {
+            log.info("项目 {} 下没有节点", projectId);
+            result.setTotalNodes(0);
+            result.setFileCount(0);
+            result.setFolderCount(0);
+            return result;
+        }
+        
+        // 3. 构建树形结构
+        List<NodeTreeVO.NodeItemVO> rootNodes = nodeTreeHelper.buildNodeTree(allNodes);
+        result.setRootNodes(rootNodes);
+        
+        // 4. 统计信息
+        int fileCount = (int) allNodes.stream().filter(node -> node.getNodeType() == 1).count();
+        int folderCount = (int) allNodes.stream().filter(node -> node.getNodeType() == 0).count();
+        
+        result.setTotalNodes(allNodes.size());
+        result.setFileCount(fileCount);
+        result.setFolderCount(folderCount);
+        
+        return result;
+    }
+
+    @Override
+    public NodeTreeVO getFolderTreePublic(Long folderId) {
+        log.info("开始构建公开文件夹节点树, folderId: {}", folderId);
+
+        // 1. 查询文件夹信息
+        Node folder = baseMapper.selectById(folderId);
+        if (folder == null) {
+            throw new BusinessException("文件夹不存在");
+        }
+        if (folder.getNodeType() != 0) {
+            throw new BusinessException("指定节点不是文件夹");
+        }
+
+        NodeTreeVO result = new NodeTreeVO();
+        result.setProjectId(folder.getProjectId());
+        result.setProjectName(folder.getNodeName()); // 复用ProjectName字段显示文件夹名
+
+        // 2. 查询项目下所有节点 (为了构建完整树结构，虽然只要子树，但为了简单复用逻辑，先查所有)
+        // 优化：其实可以只查该文件夹下的所有后代节点，但没有path字段很难直接查。
+        // 对于当前需求，查询项目所有节点在内存过滤是可行的。
+        LambdaQueryWrapper<Node> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Node::getProjectId, folder.getProjectId())
+                   .orderByAsc(Node::getCreationTime);
+        List<Node> allNodes = this.list(queryWrapper);
+
+        // 3. 构建以该文件夹为根的树
+        List<NodeTreeVO.NodeItemVO> rootNodes = nodeTreeHelper.buildFolderTree(folderId, allNodes);
+        
+        if (!rootNodes.isEmpty()) {
+            result.setRootNodes(rootNodes);
+            
+            // 4. 统计子树信息 (简单的递归统计)
+            int[] counts = nodeTreeHelper.countSubTree(rootNodes.get(0));
+            result.setTotalNodes(counts[0] + counts[1]);
+            result.setFileCount(counts[1]);
+            result.setFolderCount(counts[0]);
+        } else {
+            result.setRootNodes(Collections.emptyList());
+        }
+
         return result;
     }
 
@@ -152,9 +248,9 @@ public class NodeServiceImpl extends ServiceImpl<NodeMapper, Node>
         }
 
         // 3. 构建树形结构
-        List<NodeTreeVO.NodeItemVO> rootNodes = buildNodeTree(deletedNodes);
+        List<NodeTreeVO.NodeItemVO> rootNodes = nodeTreeHelper.buildNodeTree(deletedNodes);
         result.setRootNodes(rootNodes);
-
+        
         // 4. 统计信息
         int fileCount = (int) deletedNodes.stream().filter(node -> node.getNodeType() == 1).count();
         int folderCount = (int) deletedNodes.stream().filter(node -> node.getNodeType() == 0).count();
@@ -167,47 +263,6 @@ public class NodeServiceImpl extends ServiceImpl<NodeMapper, Node>
                 deletedNodes.size(), fileCount, folderCount);
 
         return result;
-    }
-
-    /**
-     * 使用Map映射方法构建树形结构
-     * @param allNodes 所有节点列表（已按创建时间排序）
-     * @return 树形结构的根节点列表
-     */
-    private List<NodeTreeVO.NodeItemVO> buildNodeTree(List<Node> allNodes) {
-        // 1. 创建Map，key是nodeId，value是对应的NodeItemVO
-        Map<Long, NodeTreeVO.NodeItemVO> nodeMap = new HashMap<>();
-        
-        // 2. 先将所有节点转换为NodeItemVO并放入Map
-        for (Node node : allNodes) {
-            NodeTreeVO.NodeItemVO itemVO = nodeConvert.toNodeItemVO(node);
-            nodeMap.put(node.getNodeId(), itemVO);
-        }
-        
-        // 3. 建立父子关系
-        List<NodeTreeVO.NodeItemVO> rootNodes = new ArrayList<>();
-        for (Node node : allNodes) {
-            NodeTreeVO.NodeItemVO currentNode = nodeMap.get(node.getNodeId());
-            
-            if (node.getParentId() == 0) {
-                // 根节点
-                rootNodes.add(currentNode);
-            } else {
-                // 子节点，添加到父节点的children中
-                NodeTreeVO.NodeItemVO parentNode = nodeMap.get(node.getParentId());
-                if (parentNode != null) {
-                    parentNode.getChildren().add(currentNode);
-                } else {
-                    // 如果找不到父节点，可能是数据不一致，将其作为根节点处理
-                    log.warn("节点 {} 的父节点 {} 不存在，将其作为根节点处理", 
-                            node.getNodeId(), node.getParentId());
-                    rootNodes.add(currentNode);
-                }
-            }
-        }
-        
-        log.info("成功构建树形结构，根节点数量: {}", rootNodes.size());
-        return rootNodes;
     }
 
     @Override
@@ -236,8 +291,14 @@ public class NodeServiceImpl extends ServiceImpl<NodeMapper, Node>
         }
         
         // 3. 执行递归恢复（将 deleted 置为 0）
-        recursiveRestore(nodeId);
+        List<Long> restoredNodeIds = new ArrayList<>();
+        recursiveRestore(nodeId, restoredNodeIds);
         
+        // 4. 恢复所有关联的分享链接
+        if (!restoredNodeIds.isEmpty()) {
+            shareLinkService.restoreNodeShares(restoredNodeIds);
+        }
+
         log.info("节点恢复完成, nodeId: {}", nodeId);
     }
 
@@ -269,9 +330,10 @@ public class NodeServiceImpl extends ServiceImpl<NodeMapper, Node>
     /**
      * 递归恢复节点及其子节点
      */
-    private void recursiveRestore(Long nodeId) {
+    private void recursiveRestore(Long nodeId, List<Long> restoredNodeIds) {
         // 1. 恢复当前节点
         baseMapper.restoreNode(nodeId);
+        restoredNodeIds.add(nodeId);
         
         // 2. 恢复对应的 markdown_content（如果存在）
         // 无论是否是文件节点，尝试恢复对应的 content 也没副作用
@@ -284,7 +346,7 @@ public class NodeServiceImpl extends ServiceImpl<NodeMapper, Node>
         
         // 4. 递归恢复子节点
         for (Node child : children) {
-            recursiveRestore(child.getNodeId());
+            recursiveRestore(child.getNodeId(), restoredNodeIds);
         }
     }
 
@@ -330,6 +392,9 @@ public class NodeServiceImpl extends ServiceImpl<NodeMapper, Node>
 
             baseMapper.physicalDeleteNode(id);
         }
+
+        // 4. 物理删除关联的分享链接
+        shareLinkService.physicalDeleteNodeShares(allNodeIds);
         
         log.info("成功物理删除 {} 个节点", allNodeIds.size());
     }
@@ -381,6 +446,10 @@ public class NodeServiceImpl extends ServiceImpl<NodeMapper, Node>
         
         // 批量删除所有节点
         this.removeByIds(allNodeIds);
+        
+        // 逻辑删除关联的分享链接
+        shareLinkService.deleteNodeShares(allNodeIds);
+        
         log.info("成功删除 {} 个节点", allNodeIds.size());
         
         return projectId; // 返回projectId

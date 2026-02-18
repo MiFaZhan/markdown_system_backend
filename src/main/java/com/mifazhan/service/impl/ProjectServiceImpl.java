@@ -11,11 +11,14 @@ import com.mifazhan.domain.dto.ProjectUpdateDTO;
 import com.mifazhan.domain.entity.Project;
 import com.mifazhan.domain.vo.ProjectVO;
 import com.mifazhan.service.ProjectService;
+import com.mifazhan.service.ShareLinkService;
 import com.mifazhan.mapper.ProjectMapper;
 import com.mifazhan.util.UserContext;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,6 +43,9 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project>
     private final ProjectConvert projectConvert;
     private final NodeMapper nodeMapper;
     private final MarkdownContentMapper markdownContentMapper;
+    @Autowired
+    @Lazy
+    private ShareLinkService shareLinkService;
 
     @Override
     public IPage<ProjectVO> pageProjects(Integer pageNum, Integer pageSize, String sortField, String sortOrder) {
@@ -151,7 +157,13 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project>
             nodeMapper.delete(nodeQueryWrapper);
             
             log.info("级联删除了 {} 个节点及其内容", nodes.size());
+
+            // 逻辑删除所有节点的分享链接
+            shareLinkService.deleteNodeShares(nodeIds);
         }
+
+        // 逻辑删除项目本身的分享链接 (targetType=2 为项目)
+        shareLinkService.deleteShareByTarget(2, projectId);
         
         // 4. 删除项目
         this.removeById(projectId);
@@ -213,7 +225,14 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project>
             if (!nodeIds.isEmpty()) {
                 markdownContentMapper.restoreContentByNodeIds(nodeIds);
             }
+
+            // Restore share links for all nodes
+            List<Long> allNodeIds = nodes.stream().map(Node::getNodeId).collect(Collectors.toList());
+            shareLinkService.restoreNodeShares(allNodeIds);
         }
+
+        // Restore project share link
+        shareLinkService.restoreShareByTarget(2, projectId);
         
         log.info("成功恢复项目: {}", projectId);
     }
@@ -263,10 +282,17 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project>
             if (!nodeIds.isEmpty()) {
                 markdownContentMapper.physicalDeleteContentByNodeIds(nodeIds);
             }
+
+            // Delete share links for nodes
+            List<Long> allNodeIds = nodes.stream().map(Node::getNodeId).collect(Collectors.toList());
+            shareLinkService.physicalDeleteNodeShares(allNodeIds);
         }
         
         // Delete nodes
         nodeMapper.physicalDeleteNodesByProjectId(projectId);
+
+        // Delete project share link
+        shareLinkService.physicalDeleteShareByTarget(2, projectId);
         
         // Delete project
         baseMapper.physicalDeleteProject(projectId);
