@@ -13,8 +13,11 @@ public class ShareLinkVO {
     @ApiModelProperty(value = "分享目标类型：0=文件夹，1=文件，2=项目")
     private Integer targetType;
 
-    @ApiModelProperty(value = "目标ID")
-    private Long targetId;
+    @ApiModelProperty(value = "项目ID")
+    private Long projectId;
+
+    @ApiModelProperty(value = "节点ID")
+    private Long nodeId;
 
     @ApiModelProperty(value = "目标名称")
     private String targetName;
@@ -27,9 +30,6 @@ public class ShareLinkVO {
 
     @ApiModelProperty(value = "过期时间")
     private LocalDateTime expireTime;
-
-    @ApiModelProperty(value = "访问次数")
-    private Integer viewCount;
 
     @ApiModelProperty(value = "创建时间")
     private LocalDateTime creationTime;

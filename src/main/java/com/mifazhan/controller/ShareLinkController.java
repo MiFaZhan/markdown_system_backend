@@ -39,8 +39,9 @@ public class ShareLinkController {
     @ApiOperation("获取我的分享列表")
     public Result<List<ShareLinkVO>> getMyShareList(
             @RequestParam(required = false) List<Integer> targetTypes,
-            @RequestParam(required = false) Long targetId) {
-        return Result.success(shareLinkService.getMyShareList(targetTypes, targetId));
+            @RequestParam(required = false) Long projectId,
+            @RequestParam(required = false) Long nodeId) {
+        return Result.success(shareLinkService.getMyShareList(targetTypes, projectId, nodeId));
     }
 
     @DeleteMapping("/api/share/{shareId}")

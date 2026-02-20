@@ -187,19 +187,20 @@ DROP TABLE IF EXISTS `share_link`;
 CREATE TABLE `share_link` (
   `share_id` bigint NOT NULL AUTO_INCREMENT COMMENT '分享ID',
   `target_type` tinyint NOT NULL COMMENT '分享类型：0=文件夹，1=文件，2=项目',
-  `target_id` bigint NOT NULL COMMENT '目标ID（node_id 或 project_id）',
+  `project_id` bigint NULL DEFAULT NULL COMMENT '项目id',
+  `node_id` bigint NULL DEFAULT NULL COMMENT '节点id',
   `user_id` bigint NOT NULL COMMENT '创建分享的用户ID',
   `share_code` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '分享码（唯一，用于生成短链接）',
   `password` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '访问密码（可选，NULL表示无密码）',
   `expire_time` datetime NULL DEFAULT NULL COMMENT '过期时间（NULL表示永不过期）',
-  `view_count` int NOT NULL DEFAULT 0 COMMENT '访问次数',
   `creation_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   `deleted` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否删除：0=否，1=是',
   PRIMARY KEY (`share_id`) USING BTREE,
   UNIQUE INDEX `uk_share_code`(`share_code` ASC, `deleted` ASC) USING BTREE,
-  INDEX `idx_target`(`target_type` ASC, `target_id` ASC) USING BTREE,
-  INDEX `idx_user_id`(`user_id` ASC) USING BTREE
+  INDEX `idx_target`(`target_type` ASC, `node_id` ASC) USING BTREE,
+  INDEX `idx_user_id`(`user_id` ASC) USING BTREE,
+  INDEX `idx_project_id`(`project_id` ASC) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci 
 COMMENT = '分享链接表' ROW_FORMAT = Dynamic;
 

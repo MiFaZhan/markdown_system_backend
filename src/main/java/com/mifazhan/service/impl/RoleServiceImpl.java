@@ -33,9 +33,9 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
         if (role == null) {
             return null;
         }
-        RoleVO vo = roleConvert.toVO(role);
-        vo.setPermissions(roleMapper.getPermissionCodesByRoleId(roleId));
-        return vo;
+        RoleVO roleVO = roleConvert.toVO(role);
+        roleVO.setPermissions(roleMapper.getPermissionCodesByRoleId(roleId));
+        return roleVO;
     }
 
     @Override
@@ -46,8 +46,8 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
         if (role == null) {
             return null;
         }
-        RoleVO vo = roleConvert.toVO(role);
-        vo.setPermissions(roleMapper.getPermissionCodesByRoleId(role.getRoleId()));
-        return vo;
+        RoleVO roleVO = roleConvert.toVO(role);
+        roleVO.setPermissions(roleMapper.getPermissionCodesByRoleId(role.getRoleId()));
+        return roleVO;
     }
 }

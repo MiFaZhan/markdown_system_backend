@@ -27,7 +27,7 @@ public interface ShareLinkService extends IService<ShareLink> {
      */
     String getShareNodeContent(String shareCode, Long nodeId);
 
-    List<ShareLinkVO> getMyShareList(List<Integer> targetTypes, Long targetId);
+    List<ShareLinkVO> getMyShareList(List<Integer> targetTypes, Long projectId, Long nodeId);
 
     void deleteShare(Long shareId);
 

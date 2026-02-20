@@ -48,9 +48,9 @@ public class ShareLinkServiceImpl extends ServiceImpl<ShareLinkMapper, ShareLink
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public ShareLinkVO createShare(ShareCreateDTO dto) {
+    public ShareLinkVO createShare(ShareCreateDTO shareCreateDTO) {
         Long userId = UserContext.getCurrentUserId();
-        String targetName = getTargetName(dto.getTargetType(), dto.getTargetId());
+        String targetName = getTargetName(shareCreateDTO.getTargetType(), shareCreateDTO.getTargetId());
         if (targetName == null) {
             throw new BusinessException("分享目标不存在");
         }
@@ -58,26 +58,33 @@ public class ShareLinkServiceImpl extends ServiceImpl<ShareLinkMapper, ShareLink
         String shareCode = generateUniqueShareCode();
 
         ShareLink shareLink = new ShareLink();
-        shareLink.setTargetType(dto.getTargetType());
-        shareLink.setTargetId(dto.getTargetId());
+        shareLink.setTargetType(shareCreateDTO.getTargetType());
         shareLink.setUserId(userId);
         shareLink.setShareCode(shareCode);
-        shareLink.setPassword(dto.getPassword());
-        shareLink.setExpireTime(dto.getExpireTime());
-        shareLink.setViewCount(0);
+        shareLink.setPassword(shareCreateDTO.getPassword());
+        shareLink.setExpireTime(shareCreateDTO.getExpireTime());
+
+        if (shareCreateDTO.getTargetType() == 2) {
+            shareLink.setProjectId(shareCreateDTO.getTargetId());
+            shareLink.setNodeId(null);
+        } else {
+            shareLink.setNodeId(shareCreateDTO.getTargetId());
+            Long projectId = getProjectId(shareCreateDTO.getTargetType(), shareCreateDTO.getTargetId());
+            shareLink.setProjectId(projectId);
+        }
 
         this.save(shareLink);
 
-        ShareLinkVO vo = shareLinkConvert.toVO(shareLink);
-        vo.setTargetName(targetName);
-        return vo;
+        ShareLinkVO shareLinkVO = shareLinkConvert.toVO(shareLink);
+        shareLinkVO.setTargetName(targetName);
+        return shareLinkVO;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public ShareLinkVO updateShare(ShareUpdateDTO dto) {
+    public ShareLinkVO updateShare(ShareUpdateDTO shareUpdateDTO) {
         Long userId = UserContext.getCurrentUserId();
-        ShareLink shareLink = this.getById(dto.getShareId());
+        ShareLink shareLink = this.getById(shareUpdateDTO.getShareId());
 
         if (shareLink == null) {
             throw new BusinessException("分享链接不存在");
@@ -87,26 +94,25 @@ public class ShareLinkServiceImpl extends ServiceImpl<ShareLinkMapper, ShareLink
             throw new BusinessException("无权修改此分享链接");
         }
 
-        // 更新字段
-        if (dto.getPassword() != null) {
-            shareLink.setPassword(dto.getPassword());
+        if (shareUpdateDTO.getPassword() != null) {
+            shareLink.setPassword(shareUpdateDTO.getPassword());
         }
         
-        if (Boolean.TRUE.equals(dto.getClearExpireTime())) {
+        if (Boolean.TRUE.equals(shareUpdateDTO.getClearExpireTime())) {
             shareLink.setExpireTime(null);
-        } else if (dto.getExpireTime() != null) {
-            shareLink.setExpireTime(dto.getExpireTime());
+        } else if (shareUpdateDTO.getExpireTime() != null) {
+            shareLink.setExpireTime(shareUpdateDTO.getExpireTime());
         }
 
         this.updateById(shareLink);
 
-        ShareLinkVO vo = shareLinkConvert.toVO(shareLink);
-        vo.setTargetName(getTargetName(shareLink.getTargetType(), shareLink.getTargetId()));
-        return vo;
+        ShareLinkVO shareLinkVO = shareLinkConvert.toVO(shareLink);
+        shareLinkVO.setTargetName(getTargetName(shareLink.getTargetType(), getTargetId(shareLink)));
+        return shareLinkVO;
     }
 
     @Override
-    public ShareLinkVO accessShare(String shareCode, ShareAccessDTO dto) {
+    public ShareLinkVO accessShare(String shareCode, ShareAccessDTO shareAccessDTO) {
         ShareLink shareLink = baseMapper.selectByShareCode(shareCode);
         
         if (shareLink == null || shareLink.getDeleted() == 1) {
@@ -118,17 +124,14 @@ public class ShareLinkServiceImpl extends ServiceImpl<ShareLinkMapper, ShareLink
         }
 
         if (shareLink.getPassword() != null && !shareLink.getPassword().isEmpty()) {
-            if (dto == null || dto.getPassword() == null || !dto.getPassword().equals(shareLink.getPassword())) {
+            if (shareAccessDTO == null || shareAccessDTO.getPassword() == null || !shareAccessDTO.getPassword().equals(shareLink.getPassword())) {
                 throw new BusinessException("访问密码错误");
             }
         }
 
-        baseMapper.incrementViewCount(shareLink.getShareId());
-
-        ShareLinkVO vo = shareLinkConvert.toVO(shareLink);
-        vo.setTargetName(getTargetName(shareLink.getTargetType(), shareLink.getTargetId()));
-        vo.setViewCount(shareLink.getViewCount() + 1);
-        return vo;
+        ShareLinkVO shareLinkVO = shareLinkConvert.toVO(shareLink);
+        shareLinkVO.setTargetName(getTargetName(shareLink.getTargetType(), getTargetId(shareLink)));
+        return shareLinkVO;
     }
 
     @Override
@@ -143,41 +146,39 @@ public class ShareLinkServiceImpl extends ServiceImpl<ShareLinkMapper, ShareLink
             throw new BusinessException("分享链接已过期");
         }
 
-        ShareContentVO vo = new ShareContentVO();
-        vo.setTargetType(shareLink.getTargetType());
+        ShareContentVO shareContentVO = new ShareContentVO();
+        shareContentVO.setTargetType(shareLink.getTargetType());
 
         Integer targetType = shareLink.getTargetType();
-        Long targetId = shareLink.getTargetId();
+        Long targetId = getTargetId(shareLink);
 
         if (targetType == 1) {
             Node node = nodeMapper.selectById(targetId);
             if (node == null) {
                 throw new BusinessException("分享的文件不存在或已被删除");
             }
-            vo.setTargetName(node.getNodeName());
+            shareContentVO.setTargetName(node.getNodeName());
             MarkdownContentVO contentVO = markdownContentService.getMarkdownContentByNodeId(targetId);
-            vo.setContent(contentVO != null ? contentVO.getContent() : "");
+            shareContentVO.setContent(contentVO != null ? contentVO.getContent() : "");
         } else if (targetType == 0) {
             Node node = nodeMapper.selectById(targetId);
             if (node == null) {
                 throw new BusinessException("分享的文件夹不存在或已被删除");
             }
-            vo.setTargetName(node.getNodeName());
-            // 使用 Helper 构建文件夹树
+            shareContentVO.setTargetName(node.getNodeName());
             NodeTreeVO treeVO = buildFolderTreePublic(targetId, node);
-            vo.setContent(treeVO);
+            shareContentVO.setContent(treeVO);
         } else if (targetType == 2) {
             Project project = projectMapper.selectById(targetId);
             if (project == null) {
                 throw new BusinessException("分享的项目不存在或已被删除");
             }
-            vo.setTargetName(project.getProjectName());
-            // 使用 Helper 构建项目树
+            shareContentVO.setTargetName(project.getProjectName());
             NodeTreeVO treeVO = buildProjectTreePublic(targetId, project);
-            vo.setContent(treeVO);
+            shareContentVO.setContent(treeVO);
         }
 
-        return vo;
+        return shareContentVO;
     }
 
     @Override
@@ -198,27 +199,21 @@ public class ShareLinkServiceImpl extends ServiceImpl<ShareLinkMapper, ShareLink
             throw new BusinessException("该节点不是文件");
         }
 
-        // 校验权限：节点必须在分享范围内
         Integer targetType = shareLink.getTargetType();
-        Long targetId = shareLink.getTargetId();
+        Long targetId = getTargetId(shareLink);
 
         if (targetType == 1) {
-            // 分享的是单个文件
             if (!targetId.equals(nodeId)) {
                 throw new BusinessException("无权访问该文件");
             }
         } else if (targetType == 2) {
-            // 分享的是项目
             if (!targetId.equals(node.getProjectId())) {
                 throw new BusinessException("该文件不属于分享的项目");
             }
         } else if (targetType == 0) {
-            // 分享的是文件夹
-            // 检查节点是否属于该文件夹（直接或间接）
             if (!node.getProjectId().equals(nodeMapper.selectById(targetId).getProjectId())) {
                 throw new BusinessException("该文件不属于分享的文件夹所在项目");
             }
-            // 进一步检查是否在文件夹子树下
             if (!isDescendant(targetId, nodeId)) {
                 throw new BusinessException("该文件不属于分享的文件夹");
             }
@@ -306,23 +301,26 @@ public class ShareLinkServiceImpl extends ServiceImpl<ShareLinkMapper, ShareLink
     }
 
     @Override
-    public List<ShareLinkVO> getMyShareList(List<Integer> targetTypes, Long targetId) {
+    public List<ShareLinkVO> getMyShareList(List<Integer> targetTypes, Long projectId, Long nodeId) {
         Long userId = UserContext.getCurrentUserId();
         LambdaQueryWrapper<ShareLink> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ShareLink::getUserId, userId);
         if (targetTypes != null && !targetTypes.isEmpty()) {
             wrapper.in(ShareLink::getTargetType, targetTypes);
         }
-        if (targetId != null) {
-            wrapper.eq(ShareLink::getTargetId, targetId);
+        if (projectId != null) {
+            wrapper.eq(ShareLink::getProjectId, projectId);
+        }
+        if (nodeId != null) {
+            wrapper.eq(ShareLink::getNodeId, nodeId);
         }
         wrapper.orderByDesc(ShareLink::getCreationTime);
         List<ShareLink> shareLinks = this.list(wrapper);
         
         return shareLinks.stream().map(shareLink -> {
-            ShareLinkVO vo = shareLinkConvert.toVO(shareLink);
-            vo.setTargetName(getTargetName(shareLink.getTargetType(), shareLink.getTargetId()));
-            return vo;
+            ShareLinkVO shareLinkVO = shareLinkConvert.toVO(shareLink);
+            shareLinkVO.setTargetName(getTargetName(shareLink.getTargetType(), getTargetId(shareLink)));
+            return shareLinkVO;
         }).collect(Collectors.toList());
     }
 
@@ -368,8 +366,12 @@ public class ShareLinkServiceImpl extends ServiceImpl<ShareLinkMapper, ShareLink
     @Override
     public void deleteShareByTarget(Integer targetType, Long targetId) {
         LambdaQueryWrapper<ShareLink> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(ShareLink::getTargetType, targetType)
-                .eq(ShareLink::getTargetId, targetId);
+        wrapper.eq(ShareLink::getTargetType, targetType);
+        if (targetType == 2) {
+            wrapper.eq(ShareLink::getProjectId, targetId);
+        } else {
+            wrapper.eq(ShareLink::getNodeId, targetId);
+        }
         this.remove(wrapper);
     }
 
@@ -378,7 +380,7 @@ public class ShareLinkServiceImpl extends ServiceImpl<ShareLinkMapper, ShareLink
         if (nodeIds == null || nodeIds.isEmpty()) return;
         LambdaQueryWrapper<ShareLink> wrapper = new LambdaQueryWrapper<>();
         wrapper.in(ShareLink::getTargetType, java.util.Arrays.asList(0, 1))
-                .in(ShareLink::getTargetId, nodeIds);
+                .in(ShareLink::getNodeId, nodeIds);
         this.remove(wrapper);
     }
 
@@ -415,6 +417,23 @@ public class ShareLinkServiceImpl extends ServiceImpl<ShareLinkMapper, ShareLink
             return project != null ? project.getProjectName() : null;
         }
         return null;
+    }
+
+    private Long getTargetId(ShareLink shareLink) {
+        if (shareLink.getTargetType() == 2) {
+            return shareLink.getProjectId();
+        } else {
+            return shareLink.getNodeId();
+        }
+    }
+
+    private Long getProjectId(Integer targetType, Long targetId) {
+        if (targetType == 2) {
+            return targetId;
+        } else {
+            Node node = nodeMapper.selectById(targetId);
+            return node != null ? node.getProjectId() : null;
+        }
     }
 
     private Object toNodeItem(Node node) {

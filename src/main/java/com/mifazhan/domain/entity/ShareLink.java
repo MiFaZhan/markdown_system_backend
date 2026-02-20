@@ -13,7 +13,9 @@ public class ShareLink {
 
     private Integer targetType;
 
-    private Long targetId;
+    private Long projectId;
+
+    private Long nodeId;
 
     private Long userId;
 
@@ -22,8 +24,6 @@ public class ShareLink {
     private String password;
 
     private LocalDateTime expireTime;
-
-    private Integer viewCount;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime creationTime;
