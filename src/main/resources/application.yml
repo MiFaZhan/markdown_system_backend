@@ -1,43 +1,37 @@
-# 端口号
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
 
-# 数据库名：
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/markdown_system?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-    username: root
-    password: '0307'
+    url: ${DB_URL:jdbc:mysql://localhost:3306/markdown_system?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:your-password}
 
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
 
 mybatis-plus:
-  configuration:
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+#  configuration:
+#    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
   global-config:
     db-config:
-      logic-delete-field: deleted # 全局逻辑删除字段名(deleted为实体类属性名称)
-      logic-delete-value: 1 # 逻辑已删除值。默认值为 1
-      logic-not-delete-value: 0 # 逻辑未删除值。默认值为 0
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
 
-# 文件上传配置
 file:
   upload:
-    path: ${user.home}/markdown-uploads/images/
-    max-size: 5242880
-    url-prefix: /api/images
+    path: ${FILE_UPLOAD_PATH:your-upload-path}
+    max-size: ${FILE_MAX_SIZE:5242880}
+    url-prefix: ${FILE_URL_PREFIX:/api/images}
 
 jwt:
-  secret: mifazhan-markdown-system-jwt-secret-key-2026-very-long-secret
-  expiration: 86400000
+  secret: ${JWT_SECRET:your-jwt-secret-key}
+  expiration: ${JWT_EXPIRATION:86400000}
 
-# CORS配置
 cors:
-  allowed-origins:
-    - "http://localhost:3000"
-    - "http://127.0.0.1:3000"
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:your-allowed-origins}
   allowed-methods:
     - "GET"
     - "POST"
