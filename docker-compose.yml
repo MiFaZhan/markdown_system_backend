@@ -1,7 +1,8 @@
 version: '3.8'
 services:
   backend:
-    image: markdown-system-backend:latest
+    build: .
+    image: markdown-system-backend
     container_name: markdown-backend
     ports:
       - "${SERVER_PORT:-8080}:8080"
@@ -19,4 +20,14 @@ services:
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
     volumes:
       - ./uploads:/app/uploads
+    restart: unless-stopped
+
+  frontend:
+    build: ../markdown_system_frontend
+    image: markdown_system_frontend
+    container_name: markdown-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
     restart: unless-stopped
