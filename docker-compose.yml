@@ -1,9 +1,24 @@
 version: '3.8'
 services:
+  mysql:
+    image: mysql:8.0
+    container_name: markdown-mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
+      - MYSQL_DATABASE=markdown_system
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./mysql-data:/var/lib/mysql
+      - ./sql/markdown_system.sql:/docker-entrypoint-initdb.d/markdown_system.sql
+    restart: unless-stopped
+
   backend:
     build: .
     image: markdown-system-backend
     container_name: markdown-backend
+    depends_on:
+      - mysql
     ports:
       - "${SERVER_PORT:-8080}:8080"
     env_file:
