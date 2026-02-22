@@ -8,6 +8,7 @@ import com.mifazhan.exception.BusinessException;
 import com.mifazhan.mapper.NodeMapper;
 import com.mifazhan.mapper.ProjectMapper;
 import com.mifazhan.service.ImageService;
+import com.mifazhan.util.UserContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -66,10 +67,19 @@ public class ImageServiceImpl implements ImageService {
         if (project == null) {
             throw new BusinessException("项目不存在");
         }
+        
+        Long currentUserId = UserContext.getCurrentUserId();
+        if (!project.getUserId().equals(currentUserId.intValue())) {
+            throw new BusinessException("无权向该项目上传图片");
+        }
 
         Node node = nodeMapper.selectById(nodeId);
         if (node == null) {
             throw new BusinessException("节点不存在");
+        }
+        
+        if (!node.getProjectId().equals(projectId)) {
+            throw new BusinessException("节点不属于该项目");
         }
 
         String uploadPath = fileUploadConfig.getPath();

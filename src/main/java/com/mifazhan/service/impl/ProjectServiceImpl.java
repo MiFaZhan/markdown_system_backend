@@ -47,27 +47,27 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, Project>
     @Lazy
     private ShareLinkService shareLinkService;
 
-    @Override
-    public IPage<ProjectVO> pageProjects(Integer pageNum, Integer pageSize, String sortField, String sortOrder) {
-        // 创建分页对象，默认值处理
-        Page<Project> page = new Page<>(pageNum != null ? pageNum : 1, pageSize != null ? pageSize : 10);
-
-        // 添加排序条件
-        if ("asc".equalsIgnoreCase(sortOrder)) {
-            page.setOrders(java.util.Collections.singletonList(OrderItem.asc(sortField)));
-        } else {
-            page.setOrders(java.util.Collections.singletonList(OrderItem.desc(sortField)));
-        }
-
-        // 分页查询
-        IPage<Project> projectPage = this.page(page);
-
-        // 转换为VO分页对象
-        IPage<ProjectVO> voPage = new Page<>(projectPage.getCurrent(), projectPage.getSize(), projectPage.getTotal());
-        voPage.setRecords(projectConvert.toVOList(projectPage.getRecords()));
-
-        return voPage;
-    }
+//    @Override
+//    public IPage<ProjectVO> pageProjects(Integer pageNum, Integer pageSize, String sortField, String sortOrder) {
+//        // 创建分页对象，默认值处理
+//        Page<Project> page = new Page<>(pageNum != null ? pageNum : 1, pageSize != null ? pageSize : 10);
+//
+//        // 添加排序条件
+//        if ("asc".equalsIgnoreCase(sortOrder)) {
+//            page.setOrders(java.util.Collections.singletonList(OrderItem.asc(sortField)));
+//        } else {
+//            page.setOrders(java.util.Collections.singletonList(OrderItem.desc(sortField)));
+//        }
+//
+//        // 分页查询
+//        IPage<Project> projectPage = this.page(page);
+//
+//        // 转换为VO分页对象
+//        IPage<ProjectVO> voPage = new Page<>(projectPage.getCurrent(), projectPage.getSize(), projectPage.getTotal());
+//        voPage.setRecords(projectConvert.toVOList(projectPage.getRecords()));
+//
+//        return voPage;
+//    }
 
     @Override
     public List<ProjectVO> listProject(String keyword, String sortField, String sortOrder) {

@@ -18,7 +18,7 @@ public interface ProjectService extends IService<Project> {
 
     ProjectVO insertProject(ProjectDTO projectDTO);
 
-    IPage<ProjectVO> pageProjects(Integer pageNum, Integer pageSize, String sortField, String sortOrder);
+//    IPage<ProjectVO> pageProjects(Integer pageNum, Integer pageSize, String sortField, String sortOrder);
 
     List<ProjectVO> listProject(String keyword, String sortField, String sortOrder);
 

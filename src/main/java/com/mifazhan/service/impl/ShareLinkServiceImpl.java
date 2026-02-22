@@ -50,10 +50,33 @@ public class ShareLinkServiceImpl extends ServiceImpl<ShareLinkMapper, ShareLink
     @Transactional(rollbackFor = Exception.class)
     public ShareLinkVO createShare(ShareCreateDTO shareCreateDTO) {
         Long userId = UserContext.getCurrentUserId();
-        String targetName = getTargetName(shareCreateDTO.getTargetType(), shareCreateDTO.getTargetId());
-        if (targetName == null) {
-            throw new BusinessException("分享目标不存在");
+        
+        Integer targetType = shareCreateDTO.getTargetType();
+        Long targetId = shareCreateDTO.getTargetId();
+        
+        if (targetType == 2) {
+            Project project = projectMapper.selectById(targetId);
+            if (project == null) {
+                throw new BusinessException("分享的项目不存在");
+            }
+            if (!project.getUserId().equals(userId.intValue())) {
+                throw new BusinessException("无权分享该项目");
+            }
+        } else {
+            Node node = nodeMapper.selectById(targetId);
+            if (node == null) {
+                throw new BusinessException("分享的节点不存在");
+            }
+            Project project = projectMapper.selectById(node.getProjectId());
+            if (project == null) {
+                throw new BusinessException("节点所属项目不存在");
+            }
+            if (!project.getUserId().equals(userId.intValue())) {
+                throw new BusinessException("无权分享该节点");
+            }
         }
+
+        String targetName = getTargetName(targetType, targetId);
 
         String shareCode = generateUniqueShareCode();
 

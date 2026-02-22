@@ -8,6 +8,7 @@ import com.mifazhan.domain.dto.NodeUpdateDTO;
 import com.mifazhan.domain.dto.NodeUploadDTO;
 import com.mifazhan.domain.entity.Node;
 import com.mifazhan.domain.entity.MarkdownContent;
+import com.mifazhan.domain.entity.Project;
 import com.mifazhan.exception.BusinessException;
 import com.mifazhan.domain.vo.NodeVO;
 import com.mifazhan.domain.vo.NodeTreeVO;
@@ -20,6 +21,7 @@ import com.mifazhan.service.helper.NodeTreeHelper;
 import com.mifazhan.mapper.NodeMapper;
 import com.mifazhan.mapper.MarkdownContentMapper;
 import com.mifazhan.mapper.ProjectMapper;
+import com.mifazhan.util.UserContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,13 +69,18 @@ public class NodeServiceImpl extends ServiceImpl<NodeMapper, Node>
     public NodeVO insertNode(NodeDTO nodeDTO) {
         log.info("开始插入节点: {}", nodeDTO);
 
+        Long currentUserId = UserContext.getCurrentUserId();
+        Project project = projectMapper.selectById(nodeDTO.getProjectId());
+        if (project == null || !project.getUserId().equals(currentUserId.intValue())) {
+            log.warn("用户 {} 尝试访问无权限的项目 {}", currentUserId, nodeDTO.getProjectId());
+            throw new BusinessException(403, "无权限访问该项目");
+        }
+
         Node node = nodeConvert.toEntity(nodeDTO);
 
-        // 先插入 node 表，获得数据库自增的 nodeId
         this.save(node);
         log.info("成功插入节点，ID: {}", node.getNodeId());
 
-        // 如果节点类型为文件(1)，则同步在 markdown_content 表中新增记录
         if (nodeDTO.getNodeType() == 1) {
             MarkdownContent markdownContent = new MarkdownContent();
             markdownContent.setNodeId(node.getNodeId());
@@ -88,10 +95,22 @@ public class NodeServiceImpl extends ServiceImpl<NodeMapper, Node>
     @Transactional(rollbackFor = Exception.class)
     public NodeVO updateNode(NodeUpdateDTO nodeUpdateDTO) {
         log.info("开始修改节点, nodeUpdateDTO: {}", nodeUpdateDTO);
+
+        Node existingNode = this.getById(nodeUpdateDTO.getNodeId());
+        if (existingNode == null) {
+            throw new BusinessException("节点不存在");
+        }
+
+        Long currentUserId = UserContext.getCurrentUserId();
+        Project project = projectMapper.selectById(existingNode.getProjectId());
+        if (project == null || !project.getUserId().equals(currentUserId.intValue())) {
+            log.warn("用户 {} 尝试修改无权限的节点 {}", currentUserId, nodeUpdateDTO.getNodeId());
+            throw new BusinessException(403, "无权限访问该项目");
+        }
+
         Node node = nodeConvert.toEntity(nodeUpdateDTO);
         this.updateById(node);
-        
-        // 重新查询获取完整信息（包括projectId）
+
         Node updatedNode = this.getById(node.getNodeId());
         return nodeConvert.toVO(updatedNode);
     }
@@ -269,13 +288,18 @@ public class NodeServiceImpl extends ServiceImpl<NodeMapper, Node>
     @Transactional(rollbackFor = Exception.class)
     public void restoreNode(Long nodeId) {
         log.info("开始恢复节点, nodeId: {}", nodeId);
-        
-        // 1. 获取要恢复的节点
-        // 使用自定义SQL查询，绕过逻辑删除机制
+
         Node node = baseMapper.selectNodeIncludingDeleted(nodeId);
-        
+
         if (node == null) {
             throw new BusinessException("节点不存在");
+        }
+
+        Long currentUserId = UserContext.getCurrentUserId();
+        Project project = projectMapper.selectById(node.getProjectId());
+        if (project == null || !project.getUserId().equals(currentUserId.intValue())) {
+            log.warn("用户 {} 尝试恢复无权限的节点 {}", currentUserId, nodeId);
+            throw new BusinessException(403, "无权限访问该项目");
         }
         
         // 2. 检查父节点下是否有同名文件，如果有则重命名
@@ -419,13 +443,20 @@ public class NodeServiceImpl extends ServiceImpl<NodeMapper, Node>
     public Long deleteNode(Long nodeId) {
         log.info("开始删除节点, nodeId: {}", nodeId);
         Node node = this.getById(nodeId);
-        
+
         if (node == null) {
             log.warn("节点不存在,ID: {}", nodeId);
             throw new BusinessException("节点不存在");
         }
-        
-        Long projectId = node.getProjectId(); // 保存projectId用于返回
+
+        Long currentUserId = UserContext.getCurrentUserId();
+        Project project = projectMapper.selectById(node.getProjectId());
+        if (project == null || !project.getUserId().equals(currentUserId.intValue())) {
+            log.warn("用户 {} 尝试删除无权限的节点 {}", currentUserId, nodeId);
+            throw new BusinessException(403, "无权限访问该项目");
+        }
+
+        Long projectId = node.getProjectId();
         
         // 收集所有需要删除的节点ID(包括当前节点和所有子节点)
         List<Long> allNodeIds = new ArrayList<>();
@@ -477,8 +508,15 @@ public class NodeServiceImpl extends ServiceImpl<NodeMapper, Node>
     @Override
     @Transactional(rollbackFor = Exception.class)
     public NodeVO uploadMarkdownFile(NodeUploadDTO nodeUploadDTO) {
-        log.info("开始上传Markdown文件, projectId: {}, parentId: {}", 
+        log.info("开始上传Markdown文件, projectId: {}, parentId: {}",
                 nodeUploadDTO.getProjectId(), nodeUploadDTO.getParentId());
+
+        Long currentUserId = UserContext.getCurrentUserId();
+        Project project = projectMapper.selectById(nodeUploadDTO.getProjectId());
+        if (project == null || !project.getUserId().equals(currentUserId.intValue())) {
+            log.warn("用户 {} 尝试上传文件到无权限的项目 {}", currentUserId, nodeUploadDTO.getProjectId());
+            throw new BusinessException(403, "无权限访问该项目");
+        }
 
         MultipartFile file = nodeUploadDTO.getFile();
         String originalFilename = file.getOriginalFilename();

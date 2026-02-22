@@ -5,11 +5,14 @@ import com.mifazhan.domain.convert.MarkdownContentConvert;
 import com.mifazhan.domain.dto.MarkdownContentDTO;
 import com.mifazhan.domain.entity.MarkdownContent;
 import com.mifazhan.domain.entity.Node;
+import com.mifazhan.domain.entity.Project;
 import com.mifazhan.domain.vo.MarkdownContentVO;
 import com.mifazhan.exception.BusinessException;
 import com.mifazhan.mapper.MarkdownContentMapper;
 import com.mifazhan.mapper.NodeMapper;
+import com.mifazhan.mapper.ProjectMapper;
 import com.mifazhan.service.MarkdownContentService;
+import com.mifazhan.util.UserContext;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +26,7 @@ public class MarkdownContentServiceImpl extends ServiceImpl<MarkdownContentMappe
     private final MarkdownContentConvert markdownContentConvert;
     private final MarkdownContentMapper markdownContentMapper;
     private final NodeMapper nodeMapper;
+    private final ProjectMapper projectMapper;
 
     @Override
     public MarkdownContentVO getMarkdownContentByNodeId(Long nodeId) {
@@ -33,6 +37,14 @@ public class MarkdownContentServiceImpl extends ServiceImpl<MarkdownContentMappe
         if (node.getNodeType() != 1) {
             throw new BusinessException("只能获取文件类型节点的内容");
         }
+
+        Long currentUserId = UserContext.getCurrentUserId();
+        Project project = projectMapper.selectById(node.getProjectId());
+        if (project == null || !project.getUserId().equals(currentUserId.intValue())) {
+            log.warn("用户 {} 尝试访问无权限的项目的内容", currentUserId);
+            throw new BusinessException(403, "无权限访问该项目");
+        }
+
         MarkdownContent markdownContent = markdownContentMapper.selectById(nodeId);
         return markdownContentConvert.toVO(markdownContent);
     }
@@ -46,8 +58,14 @@ public class MarkdownContentServiceImpl extends ServiceImpl<MarkdownContentMappe
         if (node.getNodeType() != 1) {
             throw new BusinessException("只能更新文件类型节点的内容");
         }
-        
-        // 先查询当前数据库中的记录
+
+        Long currentUserId = UserContext.getCurrentUserId();
+        Project project = projectMapper.selectById(node.getProjectId());
+        if (project == null || !project.getUserId().equals(currentUserId.intValue())) {
+            log.warn("用户 {} 尝试更新无权限的项目的内容", currentUserId);
+            throw new BusinessException(403, "无权限访问该项目");
+        }
+
         MarkdownContent existingContent = markdownContentMapper.selectById(nodeId);
         if (existingContent == null) {
             throw new BusinessException("内容记录不存在");
