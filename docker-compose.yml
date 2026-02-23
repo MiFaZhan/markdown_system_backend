@@ -15,7 +15,7 @@ services:
 
   backend:
     build: .
-    image: markdown-system-backend
+    image: markdown-system:backend
     container_name: markdown-backend
     depends_on:
       - mysql
@@ -39,7 +39,7 @@ services:
 
   frontend:
     build: ../markdown_system_frontend
-    image: markdown_system_frontend
+    image: markdown_system:frontend
     container_name: markdown-frontend
     ports:
       - "80:80"
