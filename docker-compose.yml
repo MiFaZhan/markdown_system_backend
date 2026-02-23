@@ -39,7 +39,7 @@ services:
 
   frontend:
     build: ../markdown_system_frontend
-    image: markdown_system:frontend
+    image: markdown-system:frontend
     container_name: markdown-frontend
     ports:
       - "80:80"
