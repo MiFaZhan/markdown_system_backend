@@ -17,6 +17,9 @@ import com.mifazhan.exception.BusinessException;
 import com.mifazhan.mapper.NodeMapper;
 import com.mifazhan.mapper.ProjectMapper;
 import com.mifazhan.mapper.ShareLinkMapper;
+import com.mifazhan.domain.entity.MarkdownContent;
+import com.mifazhan.domain.convert.MarkdownContentConvert;
+import com.mifazhan.mapper.MarkdownContentMapper;
 import com.mifazhan.service.MarkdownContentService;
 import com.mifazhan.service.ShareLinkService;
 import com.mifazhan.service.helper.NodeTreeHelper;
@@ -41,6 +44,8 @@ public class ShareLinkServiceImpl extends ServiceImpl<ShareLinkMapper, ShareLink
     private final ProjectMapper projectMapper;
     private final NodeTreeHelper nodeTreeHelper;
     private final MarkdownContentService markdownContentService;
+    private final MarkdownContentMapper markdownContentMapper;
+    private final MarkdownContentConvert markdownContentConvert;
 
     private static final String CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     private static final int CODE_LENGTH = 8;
@@ -181,8 +186,10 @@ public class ShareLinkServiceImpl extends ServiceImpl<ShareLinkMapper, ShareLink
                 throw new BusinessException("分享的文件不存在或已被删除");
             }
             shareContentVO.setTargetName(node.getNodeName());
-            MarkdownContentVO contentVO = markdownContentService.getMarkdownContentByNodeId(targetId);
-            shareContentVO.setContent(contentVO != null ? contentVO.getContent() : "");
+            
+            // 使用 mapper 直接查询，绕过权限验证
+            MarkdownContent markdownContent = markdownContentMapper.selectById(targetId);
+            shareContentVO.setContent(markdownContent != null ? markdownContent.getContent() : "");
         } else if (targetType == 0) {
             Node node = nodeMapper.selectById(targetId);
             if (node == null) {
@@ -242,8 +249,9 @@ public class ShareLinkServiceImpl extends ServiceImpl<ShareLinkMapper, ShareLink
             }
         }
 
-        MarkdownContentVO contentVO = markdownContentService.getMarkdownContentByNodeId(nodeId);
-        return contentVO != null ? contentVO.getContent() : "";
+        // 使用 mapper 直接查询，绕过权限验证
+        MarkdownContent markdownContent = markdownContentMapper.selectById(nodeId);
+        return markdownContent != null ? markdownContent.getContent() : "";
     }
 
     private NodeTreeVO buildProjectTreePublic(Long projectId, Project project) {
