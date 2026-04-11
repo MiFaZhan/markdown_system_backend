@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
@@ -133,6 +134,19 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public Result<?> handleNoHandlerFoundException(NoHandlerFoundException e, HttpServletRequest request) {
         log.error("404异常：{} - {}", request.getRequestURI(), e.getMessage());
+        return Result.error(404, "请求的资源不存在");
+    }
+
+    /**
+     * 处理静态资源未找到异常
+     * @param e 静态资源未找到异常
+     * @param request HTTP请求对象
+     * @return Result对象
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public Result<?> handleNoResourceFoundException(NoResourceFoundException e, HttpServletRequest request) {
+        log.warn("静态资源未找到：{}", request.getRequestURI());
         return Result.error(404, "请求的资源不存在");
     }
 
